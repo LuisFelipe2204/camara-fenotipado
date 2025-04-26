@@ -1,0 +1,50 @@
+# Proteus 8 Simulation and Build Files
+*.LO$
+*.PDSBak
+*.PDSprj$
+*.err
+*.log
+*.bak
+*.tmp
+*.~*
+*.db
+*.net
+*.o
+*.cof
+*.hex
+*.elf
+*.mch
+*.obj
+*.lst
+*.map
+*.d
+*.sdf
+*.aps
+*.dep
+*.i
+*.scc
+
+# Simulation outputs
+*.res
+*.set
+*.swp
+*.lnk
+
+# Auto save and lock files
+*.lock
+*.autosave
+
+# Backup files from editors
+*.bak
+*.pdsbak
+*~
+*.old
+*.workspace
+
+/build/
+/output/
+/bin/
+/Debug/
+/Release/
+
+/VSMStudio/
