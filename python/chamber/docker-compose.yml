@@ -1,0 +1,7 @@
+services:
+  chamber:
+    build:
+      context: ./backend/
+      dockerfile: Dockerfile
+    devices:
+      - /dev/ttyAMA0:/dev/ttyAMA0
