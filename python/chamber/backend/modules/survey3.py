@@ -1,5 +1,5 @@
 import RPi.GPIO as GPIO # type: ignore
-from os import path, listdir
+from os import path, listdir, remove
 import shutil
 import time
 
@@ -50,4 +50,30 @@ class Survey3():
             return False
         
         shutil.move(lastest, f'{self.dest}/{self.id}-{time.strftime("%Y%m%d-%H%M%S")}.JPG')
+        return True
+    
+    def transfer_n(self, n: int, steps: list[int]):
+        if not path.exists(self.origin):
+            print(f"Error: The directory {self.origin} does not exist.")
+            return False
+        
+        files = [f for f in listdir(self.origin) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
+        files = sorted(files, key=lambda x: path.getctime(path.join(self.origin, x)))
+
+        if len(files) < n * 10:
+            print(f"Not enough files to transfer. Found {len(files)}, but expected {n * 10}.")
+            return False
+        
+        for i, file in enumerate(files[:n * 10][::-1][::10]):
+            shutil.move(path.join(self.origin, file), f'{self.dest}/{self.id}-step{steps[i]}-{time.strftime("%Y%m%d-%H%M%S")}.JPG')
+        return True
+
+    def clear_sd(self):
+        if not path.exists(self.origin):
+            print(f"Error: The directory {self.origin} does not exist.")
+            return False
+        
+        for file in listdir(self.origin):
+            name = path.join(self.origin, file)
+            if path.isfile(name): remove(name)
         return True
