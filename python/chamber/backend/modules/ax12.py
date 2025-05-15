@@ -5,7 +5,7 @@
 From https://github.com/aakieu/ax12_control
 """
 
-from dynamixel_sdk import *  # Uses Dynamixel SDK library
+from dynamixel_sdk import *  # type: ignore # Uses Dynamixel SDK library
 
 # Control table ADDRess for AX-12
 # EEPROM REGISTER ADDRESSES - Permanently stored in memory once changed
@@ -70,7 +70,7 @@ class Ax12:
 
     PROTOCOL_VERSION = 1.0
     BAUDRATE = 1_000_000  # Dynamixel default baudrate
-    DEVICENAME = '/dev/ttyUSB0'  # e.g 'COM3' windows or '/dev/ttyUSB0' for linux
+    DEVICENAME: str = '/dev/ttyUSB0'  # e.g 'COM3' windows or '/dev/ttyUSB0' for linux
     DEBUG = True
 
     def __init__(self, motor_id):
@@ -145,7 +145,7 @@ class Ax12:
     def get_baudrate(self):
         return self.get_register1(ADDR_AX_BAUD_RATE)
 
-    def set_baudrate(self, baudrate):
+    def set_baudrate(self, baudrate): # type: ignore
         
         self.set_register1(ADDR_AX_BAUD_RATE, baudrate)
 
@@ -210,7 +210,7 @@ class Ax12:
         return self.get_register1(ADDR_AX_ALARM_SHUTDOWN)
 
     def set_shutdown(self, shutdown_value):
-        self.get_register1(ADDR_AX_ALARM_SHUTDOWN, shutdown_value)
+        self.set_register1(ADDR_AX_ALARM_SHUTDOWN, shutdown_value)
 
     # functions for RAM Read/Write registers - resets after shutdown
     def get_torque_enable(self):
