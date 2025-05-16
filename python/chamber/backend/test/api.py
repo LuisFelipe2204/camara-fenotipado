@@ -9,7 +9,7 @@ import random
 # Constants
 CAM_RGB_INDEX = 0
 CAMERA_FPS = 15
-API_PORT = 8080
+API_PORT = 80
 
 # Library initialization
 rgb_camera = cv2.VideoCapture(CAM_RGB_INDEX)

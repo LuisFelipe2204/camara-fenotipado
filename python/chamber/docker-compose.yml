@@ -1,11 +1,14 @@
 services:
-  # backend:
-  #   build: ./backend
-  #   devices:
-  #     - ${CAMERA_DIR}:/dev/video0
-  #     - ${UART_DIR}:/dev/ttyAMA0
-  #   env_file:
-  #     - .env
+  backend:
+    build: ./backend
+    ports:
+      - "${API_PORT}:80"
+    devices:
+      - ${CAMERA_DIR}:/dev/video0
+      - ${UART_DIR}:/dev/ttyAMA0
+      - ${GPIO_DIR}:/dev/gpiomem
+    env_file:
+      - .env
   frontend:
     build: ./frontend
     ports:
