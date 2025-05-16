@@ -1,14 +1,16 @@
 services:
-  backend:
-    build: ./backend
-    devices:
-      - ${CAMERA_DIR}:/dev/video0
-      - ${UART_DIR}:/dev/ttyAMA0
-    env_file:
-      - .env
+  # backend:
+  #   build: ./backend
+  #   devices:
+  #     - ${CAMERA_DIR}:/dev/video0
+  #     - ${UART_DIR}:/dev/ttyAMA0
+  #   env_file:
+  #     - .env
   frontend:
     build: ./frontend
     ports:
       - "${DASHBOARD_PORT}:80"
     env_file:
       - .env
+    volumes:
+      - ./frontend/src/:/usr/share/nginx/html/
