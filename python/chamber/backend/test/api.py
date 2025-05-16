@@ -9,7 +9,7 @@ import random
 # Constants
 CAM_RGB_INDEX = 0
 CAMERA_FPS = 15
-API_PORT = 80
+API_PORT = 8080
 
 # Library initialization
 rgb_camera = cv2.VideoCapture(CAM_RGB_INDEX)
@@ -37,9 +37,10 @@ def start_api():
 def capture_frame():
     global current_frame
     while not stop_event.is_set():
-        with frame_lock:
-            success, frame = rgb_camera.read()
-            if success: current_frame = cv2.imencode('.jpg', frame)[1].tobytes()
+        success, frame = rgb_camera.read()
+        if success:
+            with frame_lock:
+                current_frame = cv2.imencode('.jpg', frame)[1].tobytes()
         time.sleep(1 / CAMERA_FPS)
 
 @app.get("/dashboard")
@@ -57,12 +58,13 @@ def serve_dashboard_var(id: str):
 def serve_video():
     def generate():
         while True:
-            with frame_lock:
-                if current_frame is None: continue
-                yield (
-                    b'--frame\r\n'
-                    b'Content-Type: image/jpeg\r\n\r\n' + current_frame + b'\r\n'
-                )
+            frame_lock.acquire()
+            if current_frame is None: continue
+            data = (b'--frame\r\n'
+                b'Content-Type: image/jpeg\r\n\r\n' + current_frame + b'\r\n')
+            frame_lock.release()
+            yield data
+            time.sleep(1/CAMERA_FPS)
     return StreamingResponse(generate(), media_type='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == "__main__":
@@ -73,11 +75,11 @@ if __name__ == "__main__":
         api_thread.start()
         camera_thread.start()
         while True:
-            data["temp"] = random.uniform(10, 40)
-            data["hum"] = random.uniform(20, 100)
-            data["white_lux"] = random.uniform(0, 1000)
-            data["ir_lux"] = random.uniform(0, 1000)
-            data["uv_lux"] = random.uniform(0, 14)
+            data["temp"] = round(random.uniform(10, 40), 1)
+            data["hum"] = round(random.uniform(20, 100), 1)
+            data["white_lux"] = round(random.uniform(0, 1000), 1)
+            data["ir_lux"] = round(random.uniform(0, 1000), 1)
+            data["uv_lux"] = round(random.uniform(0, 14), 1)
             data["running"] = random.choice([True, False])
             time.sleep(0.1)
     except KeyboardInterrupt:

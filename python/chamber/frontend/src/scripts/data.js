@@ -31,4 +31,4 @@ const loop = async () => {
   }
 };
 
-setInterval(loop, 500);
+setInterval(loop, 1000);
