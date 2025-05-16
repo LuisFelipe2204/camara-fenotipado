@@ -1,0 +1,56 @@
+main {
+  --gap: 1rem;
+}
+.column {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: var(--gap);
+  margin: 1rem 0;
+}
+
+.row {
+  display: flex;
+  flex: 1 0 0;
+  flex-direction: row;
+  gap: var(--gap);
+}
+
+.widget {
+  --clr: white;
+  --value: 0%;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  padding: 1rem;
+  background-color: var(--bg-2);
+  border: 0.125rem solid var(--fg-3);
+}
+.widget .title {
+  flex: 0 1 auto;
+  margin: 0;
+  padding: 0.5rem;
+  padding-top: 0;
+  color: white;
+  border-bottom: 0.125rem solid var(--fg-3);
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.widget .object {
+  flex: 1 1 0;
+}
+.widget .value {
+  flex: 0 1 auto;
+  margin: 0 auto;
+  padding: 0 1rem;
+  width: 3rem;
+  color: var(--fg-1);
+  border: 0.125rem solid var(--clr);
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.credits {
+}

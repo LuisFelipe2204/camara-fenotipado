@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard</title>
+
+    <link rel="stylesheet" href="./styles/index.css" />
+    <link rel="stylesheet" href="./styles/header.css" />
+    <link rel="stylesheet" href="./styles/widget.css" />
+    <link rel="stylesheet" href="./styles/widgets/thermometer.css" />
+    <link rel="stylesheet" href="./styles/widgets/bulb.css" />
+    <link rel="stylesheet" href="./styles/widgets/waterdrop.css" />
+
+    <script src="./scripts/widgetBuilder.js" defer></script>
+    <script src="./scripts/data.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <img src="./assets/eafit-logo.png" alt="EAFIT Logo" class="logo" />
+      <h1 class="title">Cámara de Fenotipado | Dashboard</h1>
+    </header>
+
+    <div id="background"></div>
+
+    <main class="row">
+      <div class="column" style="flex: 3 1 0">
+        <div class="row" style="flex: 2 1 0">
+          <div class="widget" id="camera">
+            <!-- <img src="/api/video" alt=""> -->
+          </div>
+        </div>
+        <div class="row">
+          <div class="widget" id="running"></div>
+        </div>
+      </div>
+      <div class="column" style="flex: 2 1 0">
+        <div class="row" style="flex: 2 1 0">
+          <div
+            class="widget temp-thermometer"
+            id="temp"
+            style="--clr: #e0ab41"
+            data-title="Temperatura"
+            data-value="0"
+          ></div>
+          <div
+            class="widget temp-waterdrop"
+            id="hum"
+            style="--clr: #42b3ce"
+            data-title="Humedad"
+            data-value="0"
+          ></div>
+        </div>
+        <div class="row" style="flex: 2 1 0">
+          <div
+            class="widget temp-bulb"
+            id="white_lux"
+            style="--clr: white"
+            data-title="Luz Blanca"
+            data-value="0"
+          ></div>
+          <div
+            class="widget temp-bulb"
+            id="ir_lux"
+            style="--clr: red"
+            data-title="Luz Infrarroja"
+            data-value="0"
+          ></div>
+          <div
+            class="widget temp-bulb"
+            id="uv_lux"
+            style="--clr: magenta"
+            data-title="Luz Ultravioleta"
+            data-value="0"
+          ></div>
+        </div>
+        <div class="row" style="flex: 1 1 0">
+          <div class="widget credits"></div>
+        </div>
+      </div>
+    </main>
+
+    <template id="temp-thermometer">
+      <p class="title"></p>
+      <div class="object thermometer">
+        <div class="bar-border">
+          <div class="bar"></div>
+        </div>
+        <div class="ball-border">
+          <div class="ball"></div>
+        </div>
+      </div>
+      <span class="value"></span>
+    </template>
+
+    <template id="temp-bulb">
+      <p class="title"></p>
+      <div class="object bulb">
+        <div class="ball-border">
+          <div class="ball"></div>
+        </div>
+        <div class="bar-border">
+          <div class="bar"></div>
+        </div>
+      </div>
+      <span class="value"></span>
+    </template>
+
+    <template id="temp-waterdrop">
+      <p class="title"></p>
+      <div class="object waterdrop">
+        <div class="ball-border">
+          <div class="ball"></div>
+        </div>
+      </div>
+      <span class="value"></span>
+    </template>
+  </body>
+</html>
