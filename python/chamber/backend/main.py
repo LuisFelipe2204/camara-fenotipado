@@ -1,7 +1,6 @@
 import RPi.GPIO as GPIO # type: ignore
 import adafruit_tsl2561, adafruit_dht, adafruit_bh1750, adafruit_ltr390
 import cv2
-from cv2.typing import MatLike
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, StreamingResponse
 import uvicorn
@@ -11,6 +10,10 @@ from modules.ax12 import Ax12
 import busio
 import board
 import time
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 # Pin I/O
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -43,12 +46,13 @@ CAM_DEST = "/home/rpi4sise1/Desktop/pictures"
 DXL_DEVICENAME = '/dev/ttyAMA0'
 DXL_BAUDRATE = 1_000_000
 DXL_ID = 1
-DXL_SPEED = 200
+DXL_SPEED = 50
 MOTOR_STEPS = 11
 MOTOR_STEP_TIME = 1.5
 ANGLES = [round(i * (300 / (MOTOR_STEPS - 1))) for i in range(MOTOR_STEPS)]
 SENSOR_READ_TIME = 0.5
 CAMERA_FPS = 15
+API_PORT = int(os.getenv("API_PORT", "8000"))
 
 
 # Class configuration
@@ -64,7 +68,7 @@ dht = adafruit_dht.DHT22(DHT_PIN, use_pulseio=False)
 tsl = adafruit_tsl2561.TSL2561(i2c)
 bh = adafruit_bh1750.BH1750(i2c)
 ltr = adafruit_ltr390.LTR390(i2c)
-rgb_cam = cv2.VideoCapture(CAM_RGB_INDEX)
+rgb_camera = cv2.VideoCapture(CAM_RGB_INDEX)
 re_camera = Survey3(RE_CAMERA, "RE", CAM_SRC_RE, CAM_DEST)
 rgn_camera = Survey3(RGN_CAMERA, "RGN", CAM_SRC_RGN, CAM_DEST)
 
@@ -96,15 +100,18 @@ current_frame = None
 
 # Thread functions
 def start_api():
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+    uvicorn.run(app, host="0.0.0.0", port=API_PORT, log_level="info")
 
 def capture_frame():
     global current_frame
     while not stop_event.is_set():
-        with frame_lock:
-            success, frame = rgb_cam.read()
-            if success: current_frame = cv2.imencode('.jpg', frame)[1].tobytes()
-        time.sleep(1/CAMERA_FPS)
+        success, frame = rgb_camera.read()
+        if success:
+            f = cv2.imencode('.jpg', frame)[1].tobytes()
+            frame_lock.acquire()
+            current_frame = f
+            frame_lock.release()
+        time.sleep(1 / CAMERA_FPS)
 
 # API endpoints
 @app.get("/dashboard")
@@ -118,23 +125,36 @@ def serve_dashboard_var(id: str):
         return JSONResponse(content={id: data[id]})
     return JSONResponse(content={"error": f"{id} not found"}, status_code=404)
 
+@app.post("/dashboard/{id}")
+def update_dashboard_var(id: str, value: float):
+    if id in data:
+        data[id] = value
+        return JSONResponse(content={id: data[id]})
+    return JSONResponse(content={"error": f"{id} not found"}, status_code=404)
+
 @app.get("/video")
 def serve_video():
     def generate():
         while True:
-            with frame_lock:
-                if current_frame is None: continue
-                yield (
-                    b'--frame\r\n'
-                    b'Content-Type: image/jpeg\r\n\r\n' + current_frame + b'\r\n'
-                )
+            frame_lock.acquire()
+            if current_frame is None:
+                frame_lock.release()
+                continue
+            data = (
+                b'--frame\r\n'
+                b'Content-Type: image/jpeg\r\n\r\n' + current_frame + b'\r\n'
+            )
+            frame_lock.release()
+            yield data
+            time.sleep(1 / CAMERA_FPS)
     return StreamingResponse(generate(), media_type='multipart/x-mixed-replace; boundary=frame')
 
 # Functions
-def save_rgb_image(frame: MatLike):
+def save_rgb_image(frame: bytes):
     """Save RGB image to disk"""
     filename = f"RGB-{time.strftime('%Y%m%d-%H%M%S')}.png"
-    cv2.imwrite(f"{CAM_DEST}/{filename}", frame)
+    with open(f"{CAM_DEST}/{filename}", "wb") as file:
+        file.write(frame)
 
 def degree_to_byte(degree: int) -> int:
     """Convert degree to byte value for AX-12 motor"""
@@ -185,9 +205,10 @@ def main():
             GPIO.output(WHITE_LIGHT, GPIO.HIGH)
             GPIO.output(UV_LIGHT, GPIO.LOW)
             GPIO.output(IR_LIGHT, GPIO.LOW)
-            with frame_lock:
-                success, frame = rgb_cam.read()
-                if success: save_rgb_image(frame)
+            frame_lock.acquire()
+            if current_frame is not None:
+                save_rgb_image(current_frame)
+            frame_lock.release()
 
             # Capture images with the IR LEDs and RE camera
             GPIO.output(WHITE_LIGHT, GPIO.LOW)
@@ -238,7 +259,7 @@ if __name__ == "__main__":
     finally:
         stop_event.set()
         camera_thread.join()
-        rgb_cam.release()
+        rgb_camera.release()
         dxl.set_torque_enable(0)
         Ax12.disconnect()
         GPIO.cleanup()

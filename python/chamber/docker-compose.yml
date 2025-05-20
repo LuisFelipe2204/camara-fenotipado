@@ -1,14 +1,21 @@
 services:
-  backend:
-    build: ./backend
-    ports:
-      - "${API_PORT}:80"
-    devices:
-      - ${CAMERA_DIR}:/dev/video0
-      - ${UART_DIR}:/dev/ttyAMA0
-      - ${GPIO_DIR}:/dev/gpiomem
-    env_file:
-      - .env
+  # backend:
+  #   build: ./backend
+  #   ports:
+  #     - "${API_PORT}:80"
+  #   devices:
+  #     - ${CAMERA_DIR}:/dev/video0
+  #     - ${UART_DIR}:/dev/ttyAMA0
+  #     - ${GPIO_DIR}:/dev/gpiomem
+  #     - /dev/i2c-1:/dev/i2c-1
+  #   env_file:
+  #     - .env
+  #   volumes:
+  #     - ${CAM_DEST}:/cameras/dest/
+  #     - ${CAM_SRC_RE}:/cameras/src/re/
+  #     - ${CAM_SRC_RGN}:/cameras/src/rgn/
+  #   environment:
+  #    - BLINKA_FORCECHIP=GENERIC_LINUX
   frontend:
     build: ./frontend
     ports:

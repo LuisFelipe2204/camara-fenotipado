@@ -16,6 +16,13 @@ const Limits = {
   running: [0, 1],
 };
 
+const States = {
+  running: {
+    0: "Detenido",
+    1: "Ejecutando",
+  },
+}
+
 const loop = async () => {
   const res = await fetch("/api/dashboard");
   const data = await res.json();
@@ -28,7 +35,10 @@ const loop = async () => {
 
     if (element.querySelector(".value"))
       element.querySelector(".value").textContent = value;
+    if (element.querySelector(".state")) {
+      element.querySelector(".state").textContent = States[key][value & 1];
+    }
   }
 };
 
-setInterval(loop, 1000);
+setInterval(loop, 500);

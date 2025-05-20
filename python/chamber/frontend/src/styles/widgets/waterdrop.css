@@ -19,7 +19,7 @@
   width: 8rem;
   border: 0.5rem solid var(--bg-2);
   box-shadow: 0 0 0 0.25rem var(--fg-1);
-  border-radius: 100%;
+  border-radius: 100vmax;
   overflow: hidden;
 }
 .waterdrop .ball {
