@@ -10,10 +10,9 @@ const Widgets = {
   bulb: document.querySelectorAll(".temp-bulb"),
 };
 
-
 /**
- * @param {Element} widget 
- * @param {HTMLElement} template 
+ * @param {Element} widget
+ * @param {HTMLElement} template
  */
 const buildWidget = (widget, template) => {
   const clone = template.content.cloneNode(true);
@@ -23,6 +22,8 @@ const buildWidget = (widget, template) => {
   widget.append(clone);
 };
 
-Widgets.thermometer.forEach((widget) => buildWidget(widget, Template.thermometer));
+Widgets.thermometer.forEach((widget) =>
+  buildWidget(widget, Template.thermometer)
+);
 Widgets.waterdrop.forEach((widget) => buildWidget(widget, Template.waterdrop));
 Widgets.bulb.forEach((widget) => buildWidget(widget, Template.bulb));

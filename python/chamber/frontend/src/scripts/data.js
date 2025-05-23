@@ -21,10 +21,14 @@ const States = {
     0: "Detenido",
     1: "Ejecutando",
   },
-}
+};
 
 const loop = async () => {
   const res = await fetch("/api/dashboard");
+  if (!res.ok) {
+    console.error("Error fetching data");
+    return;
+  }
   const data = await res.json();
 
   for (const [key, value] of Object.entries(data)) {

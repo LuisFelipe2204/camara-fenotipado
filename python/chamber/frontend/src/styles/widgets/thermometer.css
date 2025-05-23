@@ -48,7 +48,7 @@
   position: absolute;
   content: "";
   top: -0.25rem;
-  width: calc(var(--size) + .4rem);
+  width: calc(var(--size) + 0.4rem);
   height: 1rem;
   background-color: var(--fg-1);
 }
@@ -57,9 +57,9 @@
   content: "";
   top: -0.25rem;
   width: calc(var(--size) - 1rem);
-  height: .85rem;
+  height: 0.85rem;
   background-color: var(--clr);
-  border: .5rem solid var(--bg-2);
+  border: 0.5rem solid var(--bg-2);
   border-top: 0;
   border-bottom: 0;
   z-index: 1;

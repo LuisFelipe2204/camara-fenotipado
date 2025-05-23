@@ -17,7 +17,7 @@
   isolation: isolate;
 }
 .temp-button .border:not(.active) {
-    opacity: .5;
+  opacity: 0.5;
 }
 .temp-button .border::before {
   content: "";

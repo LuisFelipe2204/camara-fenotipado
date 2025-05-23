@@ -16,6 +16,7 @@
     <script src="./scripts/widgetBuilder.js" defer></script>
     <script src="./scripts/data.js" defer></script>
     <script src="./scripts/start.js" defer></script>
+    <script src="./scripts/camera.js" defer></script>
   </head>
   <body>
     <header>
@@ -29,7 +30,7 @@
       <div class="column" style="flex: 3 1 0">
         <div class="row" style="flex: 2 1 0">
           <div class="widget" id="camera">
-            <img src="/api/video" alt="Live Camera" />
+            <img alt="" id="cam-video">
           </div>
         </div>
         <div class="row" style="flex: 1 1 0">
@@ -38,9 +39,6 @@
               <div class="state"></div>
             </button>
           </div>
-          <!-- <div class="widget" id="running">
-            <button></button>
-          </div> -->
         </div>
       </div>
       <div class="column" style="flex: 2 1 0">

@@ -41,7 +41,7 @@
   border-radius: 100vmax;
   z-index: 1;
   transition: 100ms;
-  box-shadow: 0 0 .5rem var(--clr);
+  box-shadow: 0 0 0.5rem var(--clr);
 }
 
 .bulb .bar-border {
@@ -58,7 +58,7 @@
   margin: 0.5rem;
   margin-top: 0;
   /* background-color: var(--clr); */
-  border: .25rem solid var(--clr);
+  border: 0.25rem solid var(--clr);
   border-top: 0;
   border-radius: 0.5rem;
 }
