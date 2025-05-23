@@ -1,9 +1,7 @@
 import RPi.GPIO as GPIO # type: ignore
 import adafruit_tsl2561, adafruit_dht, adafruit_bh1750, adafruit_ltr390
 import cv2
-from fastapi import FastAPI
-from fastapi.responses import JSONResponse, StreamingResponse
-import uvicorn
+from flask import Flask, Response, request
 import threading
 from modules.survey3 import Survey3
 from modules.ax12 import Ax12
@@ -72,7 +70,7 @@ rgb_camera = cv2.VideoCapture(CAM_RGB_INDEX)
 re_camera = Survey3(RE_CAMERA, "RE", CAM_SRC_RE, CAM_DEST)
 rgn_camera = Survey3(RGN_CAMERA, "RGN", CAM_SRC_RGN, CAM_DEST)
 
-app = FastAPI()
+app = Flask(__name__)
 
 # Variables
 start = False
@@ -86,7 +84,8 @@ data = {
     "white_lux": 0,
     "ir_lux": 0,
     "uv_lux": 0,
-    "running": False
+    "running": False,
+    "direction": 0
 }
 
 # Time variables
@@ -100,54 +99,39 @@ current_frame = None
 
 # Thread functions
 def start_api():
-    uvicorn.run(app, host="0.0.0.0", port=API_PORT, log_level="info")
+    app.run(host="0.0.0.0", port=API_PORT, debug=False, use_reloader=False)
 
-def capture_frame():
-    global current_frame
+def generate_frames():
     while not stop_event.is_set():
-        success, frame = rgb_camera.read()
-        if success:
-            f = cv2.imencode('.jpg', frame)[1].tobytes()
-            frame_lock.acquire()
-            current_frame = f
-            frame_lock.release()
-        time.sleep(1 / CAMERA_FPS)
+        with frame_lock:
+            ret, frame = rgb_camera.read()
+        if not ret: continue
+        _, buffer = cv2.imencode('.jpg', frame)
+        yield (
+            b'--frame\r\n'
+            b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n'
+        )
 
 # API endpoints
-@app.get("/dashboard")
+@app.route("/dashboard")
 def serve_dashboard():
-    return JSONResponse(content=data)
+    return data
 
-@app.get("/dashboard/{id}")
-def serve_dashboard_var(id: str):
-    value = data.get(id)
-    if value is not None:
-        return JSONResponse(content={id: data[id]})
-    return JSONResponse(content={"error": f"{id} not found"}, status_code=404)
+@app.route("/dashboard/<string:key>", methods=["POST"])
+def update_dashboard_var(key):
+    try:
+        value = float(request.args.get("value", 0))
+    except ValueError:
+        return {"error": "Invalid value"}, 400
 
-@app.post("/dashboard/{id}")
-def update_dashboard_var(id: str, value: float):
-    if id in data:
-        data[id] = value
-        return JSONResponse(content={id: data[id]})
-    return JSONResponse(content={"error": f"{id} not found"}, status_code=404)
+    if key in data:
+        data[key] = value
+        return {key: data[key]}
+    return {"error": f"{key} not found"}, 404
 
-@app.get("/video")
+@app.route("/video")
 def serve_video():
-    def generate():
-        while True:
-            frame_lock.acquire()
-            if current_frame is None:
-                frame_lock.release()
-                continue
-            data = (
-                b'--frame\r\n'
-                b'Content-Type: image/jpeg\r\n\r\n' + current_frame + b'\r\n'
-            )
-            frame_lock.release()
-            yield data
-            time.sleep(1 / CAMERA_FPS)
-    return StreamingResponse(generate(), media_type='multipart/x-mixed-replace; boundary=frame')
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 # Functions
 def save_rgb_image(frame: bytes):
@@ -205,6 +189,13 @@ def main():
             GPIO.output(WHITE_LIGHT, GPIO.HIGH)
             GPIO.output(UV_LIGHT, GPIO.LOW)
             GPIO.output(IR_LIGHT, GPIO.LOW)
+            with frame_lock:
+                ret, frame = rgb_camera.read()
+            if ret:
+                _, buffer = cv2.imencode('.jpg', frame)
+                with open(f"{CAM_DEST}/RGB-{time.time()}.jpg", "wb") as file:
+                    file.write(buffer.tobytes())
+                
             frame_lock.acquire()
             if current_frame is not None:
                 save_rgb_image(current_frame)
@@ -247,10 +238,8 @@ def main():
 
 if __name__ == "__main__":
     api_thread = threading.Thread(target=start_api, daemon=True)
-    camera_thread = threading.Thread(target=capture_frame, daemon=True)
     try:
         api_thread.start()
-        camera_thread.start()
         while True:
             main()
             time.sleep(0.1)
@@ -258,7 +247,6 @@ if __name__ == "__main__":
         print("\nExiting...")
     finally:
         stop_event.set()
-        camera_thread.join()
         rgb_camera.release()
         dxl.set_torque_enable(0)
         Ax12.disconnect()
