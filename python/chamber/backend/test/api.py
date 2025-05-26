@@ -10,7 +10,8 @@ load_dotenv()
 
 # Constants
 CAM_RGB_INDEX = 0
-CAM_DEST = "/home/rpi4sise1/Desktop/pictures"
+# CAM_DEST = "/home/rpi4sise1/Desktop/pictures"
+CAM_DEST = "./"
 CAMERA_FPS = 15
 API_PORT = int(os.getenv("API_PORT", "8000"))
 
@@ -104,4 +105,4 @@ if __name__ == "__main__":
     finally:
         stop_event.set()
         rgb_camera.release()
-        api_thread.join()
+        os._exit(0)
