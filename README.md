@@ -15,13 +15,15 @@ The system has its own Dashboard that can be accessed locally by the raspberry f
 
 ## Instalation
 
-Enable I2C Interface on the Raspberry Pi
+Enable I2C Interface and Serial Hardware on the Raspberry Pi
 
 ```
 sudo raspi-config
 ```
-
+```
 Interface Options -> I2C -> Enable
+Interface Options -> Serial Port -> (Serial shell) Disable -> (Serial hardware) Enable
+```
 
 Install package dependencies
 
