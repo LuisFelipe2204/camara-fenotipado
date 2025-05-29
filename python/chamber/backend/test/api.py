@@ -28,7 +28,10 @@ data = {
     "white_lux": 0,
     "ir_lux": 0,
     "uv_lux": 0,
-    "running": False
+    "running": False,
+    "direction": 0,
+    "angle": 0,
+    "progress": 0,
 }
 
 # Camera thread

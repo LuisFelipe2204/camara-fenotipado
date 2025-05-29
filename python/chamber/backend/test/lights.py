@@ -1,23 +1,42 @@
-import RPi.GPIO as GPIO # type: ignore
+import digitalio
+import board
 import time
 
 # Pin I/O
-LED = 17
+LED_W = digitalio.DigitalInOut(board.D17)
+LED_R = digitalio.DigitalInOut(board.D22)
+LED_U = digitalio.DigitalInOut(board.D27)
 
-# Pin definition
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(LED, GPIO.OUT)
+# Set pin directions
+for pin in [LED_W, LED_R, LED_U]:
+    pin.direction = digitalio.Direction.OUTPUT
 
 # Variables
-led = False
+led_w = False
+led_r = False
+led_u = False
 
 def main():
-    global led
-    input("Press Enter to toggle the LED...")
+    global led_w, led_r, led_u
+    pin_number = int(input("Enter the pin number to toggle the LED (17, 22, or 27): "))
 
-    led = not led
-    GPIO.output(LED, led)
-    print(f"LED {'on' if LED else 'off'}")
+    if pin_number == 17:
+        led_w = not led_w
+        LED_W.value = led_w
+        state = led_w
+    elif pin_number == 22:
+        led_r = not led_r
+        LED_R.value = led_r
+        state = led_r
+    elif pin_number == 27:
+        led_u = not led_u
+        LED_U.value = led_u
+        state = led_u
+    else:
+        print("Invalid pin number. Please enter 17, 22, or 27.")
+        return
+
+    print(f"LED {pin_number} is now {'ON' if state else 'OFF'}.")
 
 if __name__ == "__main__":
     try:
@@ -26,5 +45,3 @@ if __name__ == "__main__":
             time.sleep(0.1)
     except KeyboardInterrupt:
         print("Exiting...")
-    finally:
-        GPIO.cleanup()
