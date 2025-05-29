@@ -2,7 +2,7 @@ import digitalio
 import adafruit_tsl2561, adafruit_dht, adafruit_bh1750, adafruit_ltr390
 import cv2
 from cv2.typing import MatLike
-from flask import Flask, Response, request
+from flask import Flask, Response, request, jsonify
 import threading
 from modules.survey3 import Survey3
 from modules.ax12 import Ax12
@@ -11,6 +11,8 @@ import board
 import time
 from dotenv import load_dotenv
 import os
+import base64
+from collections import defaultdict
 
 load_dotenv()
 
@@ -43,6 +45,7 @@ DXL_ID = 1
 DXL_SPEED = 50
 MOTOR_STEPS = 11
 MOTOR_STEP_TIME = 2
+MOTOR_RESET_TIME = 5
 ANGLES = [round(i * (300 / (MOTOR_STEPS - 1))) for i in range(MOTOR_STEPS)]
 SENSOR_READ_TIME = 0.5
 CAMERA_FPS = 15
@@ -84,6 +87,9 @@ data = {
     "angle": 0,
     "progress": 0,
 }
+bogos_binted_w = 0
+bogos_binted_i = 0
+bogos_binted_u = 0
 
 # Time variables
 rotation_start_time = 0
@@ -168,6 +174,63 @@ def serve_video():
     """Serve the video stream from the RGB camera."""
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
+@app.route("/dashboard/photos")
+def serve_photos():
+    photos_dir = CAM_DEST
+
+    # Define the limits per category
+    category_limits = {
+        "RGB": bogos_binted_w,
+        "RGN": bogos_binted_u,
+        "RE": bogos_binted_i
+    }
+
+    # Store photos per category
+    categorized_files = defaultdict(list)
+
+    try:
+        # Filter only image files
+        files = [f for f in os.listdir(photos_dir) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+
+        # Categorize and sort by timestamp
+        for f in files:
+            parts = f.split("-")
+            if len(parts) < 3:
+                continue  # Skip bad format
+
+            category = parts[0].upper()
+            timestamp = parts[1] + "-" + parts[2]
+            if category in category_limits:
+                # Use timestamp as sort key
+                categorized_files[category].append((timestamp, f))
+
+        # Prepare payload
+        photos_payload = []
+
+        for category, items in categorized_files.items():
+            # Sort by timestamp (descending) and take the last N
+            items = sorted(items, key=lambda x: x[0], reverse=True)[:category_limits[category]]
+
+            for _, file in items:
+                full_path = os.path.join(photos_dir, file)
+                with open(full_path, "rb") as image_file:
+                    encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
+                photos_payload.append({
+                    "filename": file,
+                    "content": encoded_string,
+                    "content_type": "image/jpeg" if file.lower().endswith(".jpg") else "image/png"
+                })
+
+        response = {
+            "photo_counts": category_limits,
+            "photos": photos_payload
+        }
+
+        return jsonify(response)
+
+    except Exception as e:
+        return {"error": str(e)}, 500
+
 # Functions
 def save_rgb_image(frame: MatLike, timestamp: float, step=0):
     """Save the RGB image to the specified directory with a timestamp and step number.
@@ -205,7 +268,7 @@ def main():
     """Main function to handle the chamber operations.
     Reads sensor data, manages button states, controls the servo motor, and handles camera operations.
     """
-    global start, stop, angle_index, rotated, transferred, rotation_start_time, sensor_read_time, process_start
+    global start, stop, angle_index, rotated, transferred, rotation_start_time, sensor_read_time, process_start, bogos_binted_w, bogos_binted_i, bogos_binted_u
 
     new_start = debounce_button(START_BTN, start)
     new_stop = debounce_button(STOP_BTN, stop)
@@ -222,12 +285,18 @@ def main():
             dxl.set_goal_position(degree_to_byte(angle))
             rotation_start_time = time.time()
             rotated = False
+
+            with data_lock:
+                data["angle"] = angle
             if angle_index == 0:
+                time.sleep(MOTOR_RESET_TIME)
                 process_start = time.time()
-                time.sleep(5)
 
         if time.time() - rotation_start_time > MOTOR_STEP_TIME:
             print(f"Step {angle_index}/{MOTOR_STEPS} started.")
+
+            with data_lock:
+                data["progress"] = int((angle_index + 1) * 100 * 0.0 / MOTOR_STEPS)
             WHITE_LIGHT.value = True
             UV_LIGHT.value = False
             IR_LIGHT.value = False
@@ -236,18 +305,23 @@ def main():
                 ret, frame = rgb_camera.read()
             if ret:
                 save_rgb_image(frame, process_start, angle_index)
+                bogos_binted_w += 1
 
+            with data_lock:
+                data["progress"] = int((angle_index + 1) * 100 * (1/3) / MOTOR_STEPS)
             WHITE_LIGHT.value = False
             IR_LIGHT.value = True
             UV_LIGHT.value = False
             time.sleep(0.5)
             # re_camera.read()
+            # bogos_binted_i += 1
 
             WHITE_LIGHT.value = False
             IR_LIGHT.value = False
             UV_LIGHT.value = True
             time.sleep(0.5)
             rgn_camera.read()
+            bogos_binted_u += 1
 
             rotated = True
             transferred = False

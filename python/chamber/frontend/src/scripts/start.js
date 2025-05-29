@@ -14,4 +14,9 @@ btn.addEventListener("click", async () => {
     },
   });
   btn.classList.toggle("active", true);
+
+  if (state ^ 1 === 0) {
+    const event = new CustomEvent("progressDone");
+    document.dispatchEvent(event);
+  }
 });

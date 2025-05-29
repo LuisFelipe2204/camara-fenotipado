@@ -43,12 +43,13 @@ main {
 .widget .value {
   flex: 0 1 auto;
   margin: 0 auto;
-  width: 7rem;
+  width: 100%;
   color: var(--fg-1);
   border: 0.25rem solid var(--clr);
   text-align: center;
   font-size: 1.5rem;
   font-weight: 700;
+  border-radius: 100vmax;
 }
 #camera {
   display: flex;

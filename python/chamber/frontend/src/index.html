@@ -8,15 +8,19 @@
     <link rel="stylesheet" href="./styles/index.css" />
     <link rel="stylesheet" href="./styles/header.css" />
     <link rel="stylesheet" href="./styles/widget.css" />
+    <link rel="stylesheet" href="./styles/popup.css" />
     <link rel="stylesheet" href="./styles/widgets/thermometer.css" />
     <link rel="stylesheet" href="./styles/widgets/bulb.css" />
     <link rel="stylesheet" href="./styles/widgets/waterdrop.css" />
     <link rel="stylesheet" href="./styles/widgets/button.css" />
+    <link rel="stylesheet" href="./styles/widgets/value.css" />
+    <link rel="stylesheet" href="./styles/widgets/progress.css" />
 
     <script src="./scripts/widgetBuilder.js" defer></script>
     <script src="./scripts/data.js" defer></script>
     <script src="./scripts/start.js" defer></script>
     <script src="./scripts/camera.js" defer></script>
+    <script src="./scripts/photos.js" defer></script>
   </head>
   <body>
     <header>
@@ -26,18 +30,69 @@
 
     <div id="background"></div>
 
+    <section id="image-popup" class="popup-hidden">
+      <div class="popup-content">
+        <h2 class="title">Resultado del Fenotipado</h2>
+        <div class="popup-section">
+          <table>
+            <tr>
+              <td>Fotos tomadas</td>
+              <td id="popup-total">22</td>
+            </tr>
+            <tr>
+              <td>Fotos RGB</td>
+              <td id="popup-rgb">11</td>
+            </tr>
+            <tr">
+              <td>Fotos RGN</td>
+              <td id="popup-rgn">11</td>
+            </tr>
+            <tr>
+              <td>Fotos RE</td>
+              <td id="popup-re">0</td>
+            </tr>
+          </table>
+          <div class="image-view-wrapper"></div>
+        </div>
+      </div>
+    </section>
+
     <main class="row">
       <div class="column" style="flex: 3 1 0">
-        <div class="row" style="flex: 2 1 0">
+        <div class="row" style="flex: 1.5 1 0">
           <div class="widget" id="camera">
-            <img alt="" id="cam-video">
+            <img alt="" id="cam-video" />
           </div>
         </div>
-        <div class="row" style="flex: 1 1 0">
-          <div class="widget temp-button" id="running">
-            <button class="border active">
-              <div class="state"></div>
-            </button>
+        <div class="row" style="flex: 1 1 0; margin: 0">
+          <div class="column" style="flex: 1 1 0; margin: 0">
+            <div class="widget temp-button" id="running">
+              <button class="border active">
+                <div class="state"></div>
+              </button>
+            </div>
+          </div>
+          <div class="column" style="flex: 1 1 0; margin: 0">
+            <div class="row" style="flex: 1 1 0">
+              <div
+                class="widget temp-progress"
+                id="progress"
+                style="--clr: magenta"
+                data-title="Progreso"
+                data-value="0"
+                data-unit="%"
+              ></div>
+            </div>
+            <div class="row" style="flex: 1 1 0">
+              <div
+                class="widget temp-value"
+                id="angle"
+                style="--clr: black"
+                data-title="Ángulo"
+                data-value="0"
+                data-unit="°"
+              ></div>
+            </div>
           </div>
         </div>
       </div>
@@ -49,6 +104,7 @@
             style="--clr: #e0ab41"
             data-title="Temperatura"
             data-value="0"
+            data-unit="°C"
           ></div>
           <div
             class="widget temp-waterdrop"
@@ -56,6 +112,7 @@
             style="--clr: #42b3ce"
             data-title="Humedad"
             data-value="0"
+            data-unit="%"
           ></div>
         </div>
         <div class="row" style="flex: 2 1 0">
@@ -65,6 +122,7 @@
             style="--clr: #505050"
             data-title="Luz Blanca"
             data-value="0"
+            data-unit="lux"
           ></div>
           <div
             class="widget temp-bulb"
@@ -72,6 +130,7 @@
             style="--clr: hsl(0, 70%, 55%)"
             data-title="Luz Infrarroja"
             data-value="0"
+            data-unit="lux"
           ></div>
           <div
             class="widget temp-bulb"
@@ -79,6 +138,7 @@
             style="--clr: hsl(310, 70%, 55%)"
             data-title="Luz Ultravioleta"
             data-value="0"
+            data-unit="lux"
           ></div>
         </div>
         <div class="row" style="flex: 0 0 auto">
@@ -93,7 +153,7 @@
               <p>Nicolás Castro Restrepo</p>
             </div>
             <div class="logo">
-              <img src="./assets/sise-logo.jpg" alt="">
+              <img src="./assets/sise-logo.jpg" alt="" />
             </div>
           </div>
         </div>
@@ -134,6 +194,21 @@
         </div>
       </div>
       <span class="value"></span>
+    </template>
+
+    <template id="temp-progress">
+      <p class="title"></p>
+      <div class="object progress">
+        <div class="bar-border">
+          <div class="bar"></div>
+        </div>
+      </div>
+      <span class="value"></span>
+    </template>
+
+    <template id="temp-value">
+      <p class="title"></p>
+      <div class="object value"></div>
     </template>
   </body>
 </html>

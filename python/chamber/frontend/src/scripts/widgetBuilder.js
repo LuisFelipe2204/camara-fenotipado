@@ -2,12 +2,16 @@ const Template = {
   thermometer: document.getElementById("temp-thermometer"),
   waterdrop: document.getElementById("temp-waterdrop"),
   bulb: document.getElementById("temp-bulb"),
+  progress: document.getElementById("temp-progress"),
+  value: document.getElementById("temp-value"),
 };
 
 const Widgets = {
   thermometer: document.querySelectorAll(".temp-thermometer"),
   waterdrop: document.querySelectorAll(".temp-waterdrop"),
   bulb: document.querySelectorAll(".temp-bulb"),
+  progress: document.querySelectorAll(".temp-progress"),
+  value: document.querySelectorAll(".temp-value"),
 };
 
 /**
@@ -22,8 +26,8 @@ const buildWidget = (widget, template) => {
   widget.append(clone);
 };
 
-Widgets.thermometer.forEach((widget) =>
-  buildWidget(widget, Template.thermometer)
-);
-Widgets.waterdrop.forEach((widget) => buildWidget(widget, Template.waterdrop));
-Widgets.bulb.forEach((widget) => buildWidget(widget, Template.bulb));
+Object.entries(Template).forEach(([key, template]) => {
+  Widgets[key].forEach((widget) => {
+    buildWidget(widget, template);
+  });
+});
