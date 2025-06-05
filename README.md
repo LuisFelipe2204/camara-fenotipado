@@ -141,4 +141,4 @@ The following tables lists all the components used in both the phenotyping chamb
 
 ## Schematic
 
-![Schematic Diagram](./schema/Schema.BMP)
+![Schematic Diagram](./docs/Schema.BMP)
