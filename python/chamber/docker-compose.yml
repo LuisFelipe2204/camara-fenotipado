@@ -1,7 +1,10 @@
 services:
-  chamber:
-    build:
-      context: ./backend/
-      dockerfile: Dockerfile
-    devices:
-      - /dev/ttyAMA0:/dev/ttyAMA0
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "${DASHBOARD_PORT}:80"
+    env_file:
+      - .env
+    volumes:
+      - ./frontend/src/:/usr/share/nginx/html/

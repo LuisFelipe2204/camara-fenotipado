@@ -1,3 +1,7 @@
+.env
+.dockerignore
+.git
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -19,6 +23,7 @@ lib64/
 parts/
 sdist/
 var/
+env
 *.egg-info/
 .installed.cfg
 *.egg
@@ -69,5 +74,4 @@ dmypy.json
 
 # Docker files
 *.env
-.env.*
 docker-compose.override.yml
