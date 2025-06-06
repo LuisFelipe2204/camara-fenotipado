@@ -1,0 +1,217 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:139.0) Gecko/20100101 Firefox/139.0" version="27.0.8">
+  <diagram name="Page-1" id="iGaXdSXY2Cbq4fl7jPw7">
+    <mxGraphModel dx="1358" dy="715" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="583" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="f10yvMGahGZq-44imxof-10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-2" target="f10yvMGahGZq-44imxof-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-2" value="Inicio" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="364" y="20" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-3" target="f10yvMGahGZq-44imxof-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-3" value="Inicializa el Hardware y los pines" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="364" y="110" width="100" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-4" target="f10yvMGahGZq-44imxof-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-4" target="f10yvMGahGZq-44imxof-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-4" value="Define los parametros constantes del programa" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="364" y="242" width="100" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-6" target="f10yvMGahGZq-44imxof-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-6" value="Almacena los valores de los sensores actualizados" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="120" y="242" width="100" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-8" target="f10yvMGahGZq-44imxof-6">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="80" y="410" />
+              <mxPoint x="80" y="292" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-8" value="Espera 1 segundo" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.delay;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="120" y="380" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-14" target="f10yvMGahGZq-44imxof-16">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="660" y="420" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-14" value="&lt;div&gt;Inicializa la API para recibir peticiones&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="610" y="242" width="100" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-19" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-16">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="414" y="500.0000000000002" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-16" value="Actualiza el estado START/STOP si es diferente al estado anterior" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="364" y="370" width="100" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-22" target="f10yvMGahGZq-44imxof-16">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="560" y="550" />
+              <mxPoint x="560" y="420" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-24" value="No" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="f10yvMGahGZq-44imxof-23">
+          <mxGeometry x="-0.608" y="-2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-26" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-22">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="414" y="640.0000000000002" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-27" value="Si" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="f10yvMGahGZq-44imxof-26">
+          <mxGeometry x="-0.2" y="3" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-22" value="START = True" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="364" y="500" width="100" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-34" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-28" target="f10yvMGahGZq-44imxof-29">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-35" value="Si" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="f10yvMGahGZq-44imxof-34">
+          <mxGeometry x="-0.0247" y="-1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-37" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-28" target="f10yvMGahGZq-44imxof-36">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-38" value="No" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="f10yvMGahGZq-44imxof-37">
+          <mxGeometry x="-0.2" y="2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-28" value="Motor esta quieto?" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="364" y="640" width="100" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-33" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-29">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="170" y="780" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-29" value="Ordena al motor a girar a ANGLE_INDEX" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="120" y="640" width="100" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-43" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-36" target="f10yvMGahGZq-44imxof-42">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-36" value="Espera 3 segundos" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.delay;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="364" y="800" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-41" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-39" target="f10yvMGahGZq-44imxof-36">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-39" value="Motor se empezo a mover" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="120" y="780" width="100" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-45" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-42" target="f10yvMGahGZq-44imxof-44">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-42" value="Luz blanca se prende, se apaga el resto" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="364" y="910" width="100" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-47" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-44" target="f10yvMGahGZq-44imxof-46">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-44" value="Camara RGB toma foto" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="364" y="1060" width="100" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-49" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-46" target="f10yvMGahGZq-44imxof-48">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-46" value="Luz UV se prende, se apaga el resto" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="364" y="1200" width="100" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-51" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-48" target="f10yvMGahGZq-44imxof-50">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-48" value="Camara RGN toma foto" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="364" y="1340" width="100" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-53" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-50" target="f10yvMGahGZq-44imxof-52">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-50" value="&lt;div&gt;Motor esta quieto&lt;/div&gt;&lt;div&gt;Hay fotos sin transferir&lt;/div&gt;&lt;div&gt;Incrementa el ANGLE_INDEX&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="364" y="1490" width="100" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-55" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-52" target="f10yvMGahGZq-44imxof-54">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-52" value="Apaga todas luces" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="364" y="1640" width="100" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-56" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-54" target="f10yvMGahGZq-44imxof-28">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="570" y="678.8888888888889" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="520" y="1885" />
+              <mxPoint x="520" y="690" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-57" value="No" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="f10yvMGahGZq-44imxof-56">
+          <mxGeometry x="-0.8863" y="-3" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-63" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-54" target="f10yvMGahGZq-44imxof-58">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-54" value="Hay fotos sin transferir y START = False o Hay fotos sin transferir y se recorrieron todos los angulos" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="334" y="1800" width="159" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-60" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-58" target="f10yvMGahGZq-44imxof-59">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-58" value="Desmota la SD de la camara RGN" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="364" y="2010" width="100" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-62" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-59" target="f10yvMGahGZq-44imxof-61">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-59" value="Transfiere todas las fotos y limpia la SD" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="364" y="2160" width="100" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-65" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-61" target="f10yvMGahGZq-44imxof-64">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-61" value="Vuelve a montar la SD" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="364" y="2310" width="100" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-66" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="f10yvMGahGZq-44imxof-64" target="f10yvMGahGZq-44imxof-16">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="630" y="440" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="560" y="2510" />
+              <mxPoint x="560" y="420" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f10yvMGahGZq-44imxof-64" value="Resetea el ANGLE_INDEX" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="364" y="2460" width="100" height="100" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
