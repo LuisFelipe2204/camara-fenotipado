@@ -8,7 +8,7 @@ Ax12.connect() # Sets baudrate and opens com port
 
 # Constants
 MOTOR_ID = 1
-MOTOR_SPEED = 200
+MOTOR_SPEED = 50
 
 # Variables
 dxl = Ax12(MOTOR_ID)

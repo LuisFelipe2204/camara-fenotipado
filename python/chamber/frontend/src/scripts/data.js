@@ -76,7 +76,8 @@ const loop = async () => {
     });
     document.dispatchEvent(event);
     btn.classList.toggle("active", true);
+	oldDone = true;
   }
 };
 
-setInterval(loop, 500);
+setInterval(loop, 2000);
