@@ -36,19 +36,20 @@ for pin in [START_BTN, STOP_BTN]:
 
 # Constants
 CAM_RGB_INDEX = 0
+#CAM_RGB_TOPVIEW = 1 # Cámara web top view
 CAM_SRC_RGN = "/media/sise/0000-0001/DCIM/Photo"
 CAM_SRC_RE = "/media/sise/0000-00011/DCIM/Photo"
-CAM_DEST = "/home/sise/Desktop/pictures"
+CAM_DEST = "/home/sise/Desktop/pictures" # Donde se guardan las fotos RGN y RE
 DXL_DEVICENAME = '/dev/ttyAMA0'
 DXL_BAUDRATE = 1_000_000
 DXL_ID = 1
-DXL_SPEED = 50
-MOTOR_STEPS = 11
-MOTOR_STEP_TIME = 2
-MOTOR_RESET_TIME = 10
+DXL_SPEED = 50 # Velocidad en la que gira el motor
+MOTOR_STEPS = 11 # En cuantos angulos se va a detener el motor para tomar la foto
+MOTOR_STEP_TIME = 2 # Cuanto tiempo se demora en cambiar de angulo
+MOTOR_RESET_TIME = 10 # Cuanto tiempo se demora en ir desde el ultimo angulo hasta el primero
 ANGLES = [round(i * (300 / (MOTOR_STEPS - 1))) for i in range(MOTOR_STEPS)]
-SENSOR_READ_TIME = 1
-CAMERA_FPS = 15
+SENSOR_READ_TIME = 1 # Cada cuanto se actualiza el valor de los sensores
+CAMERA_FPS = 15 
 API_PORT = int(os.getenv("API_PORT", "5000"))
 
 # Class configuration
@@ -71,11 +72,11 @@ rgn_camera = Survey3(RGN_CAMERA, "RGN", CAM_SRC_RGN, CAM_DEST)
 app = Flask(__name__)
 
 # Variables
-start = False
-stop = False
-angle_index = 0
-rotated = True
-transferred = True
+start = False # Estado del boton de start
+stop = False # Estado del boton de stop
+angle_index = 0 # Ultimo angulo ordenado al motor
+rotated = True # Si el motor ya llegó a su angulo destino y tomó las fotos
+transferred = True # Si el motor ha tomado fotos nuevas desde la ultima vez que las transfirio
 data = {
     "temp": 0,
     "hum": 0,
@@ -87,9 +88,9 @@ data = {
     "angle": 0,
     "progress": 0,
 }
-bogos_binted_w = 0
-bogos_binted_i = 0
-bogos_binted_u = 0
+bogos_binted_w = 0 # Numero de fotos tomadas con la RGB
+bogos_binted_i = 0 # Numero de fotos tomadas con la RE
+bogos_binted_u = 0 # Numero de fotos tomadas con la RGN
 
 # Time variables
 rotation_start_time = 0
@@ -106,7 +107,7 @@ data_lock = threading.Lock()
 
 # Thread functions
 def start_api():
-    """Start the Flask API server in a separate thread."""
+    """Start the Flask API server in a separate thread. El frontend redirige las peticiones de los datos acá."""
     app.run(host="0.0.0.0", port=API_PORT, debug=False, use_reloader=False)
 
 def generate_frames():
@@ -143,7 +144,7 @@ def read_sensor_data():
 # API endpoints
 @app.route("/dashboard")
 def serve_dashboard():
-    """Serve the current dashboard data.
+    """Serve the current dashboard data. Retorna todas las variables de los sensores y actuadores
     Returns:
         dict: The current dashboard data.
     """
@@ -152,7 +153,7 @@ def serve_dashboard():
 
 @app.route("/dashboard/<string:key>", methods=["POST"])
 def update_dashboard_var(key):
-    """Update a dashboard variable with a new value.
+    """Update a dashboard variable with a new value. Retorna una sola variable
     Args:
         key (str): The key of the variable to update.
     Returns:
@@ -171,11 +172,14 @@ def update_dashboard_var(key):
 
 @app.route("/video")
 def serve_video():
-    """Serve the video stream from the RGB camera."""
+    """Serve the video stream from the RGB camera. Retorna el video en vivo de 1 camara RGB
+        Si se añade otra camara toca copiar y renombrar todas las funciones usadas o que alguien lo parametrice
+    """
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route("/dashboard/photos")
 def serve_photos():
+    """Retorna todas las fotos tomadas"""
     photos_dir = CAM_DEST
 
     # Define the limits per category
@@ -233,7 +237,7 @@ def serve_photos():
 
 # Functions
 def save_rgb_image(frame: MatLike, timestamp: float, step=0):
-    """Save the RGB image to the specified directory with a timestamp and step number.
+    """Save the RGB image to the specified directory CAM_DEST with a timestamp and step number.
     Args:
         frame (MatLike): The image frame to save.
         timestamp (float): The timestamp to use for the filename.
@@ -252,7 +256,7 @@ def degree_to_byte(degree: int) -> int:
     return min(max(degree * 1023 // 300, 0), 1023)
 
 def debounce_button(pin, old_state) -> bool:
-    """Debounce a button press to avoid false triggers.
+    """Debounce a button press to avoid false triggers. 
     Args:
         pin (DigitalInOut): The pin connected to the button.
         old_state (bool): The previous state of the button.
@@ -270,15 +274,18 @@ def main():
     """
     global start, stop, angle_index, rotated, transferred, rotation_start_time, sensor_read_time, process_start, bogos_binted_w, bogos_binted_i, bogos_binted_u
 
+    # Actualiza los botones START y STOP
     new_start = debounce_button(START_BTN, start)
     new_stop = debounce_button(STOP_BTN, stop)
 
+    # Si se esta ejecutando para cuando se presione STOP y si esta parado empieza se presione START
     if data["running"]:
         data["running"] = not (new_stop and not stop)
     else:
         data["running"] = new_start and not start
 
     if data["running"]:
+        # Si ya llego a su angulo destino, le ordena al motor el siguiente angulo 
         if rotated:
             print(f"Starting rotation at angle {ANGLES[angle_index]} degrees.")
             angle = ANGLES[angle_index]
@@ -289,15 +296,18 @@ def main():
 
             with data_lock:
                 data["angle"] = angle
+            # Si se va a regresar a la posicion inicial espera un rato
             if angle_index == 0:
                 time.sleep(MOTOR_RESET_TIME)
                 process_start = time.time()
 
+        # Cuando ya pasa el tiempo de MOTOR_STEP_TIME desde que se ordeno el nuevo angulo, o sea cuando acaba de llegar
         if time.time() - rotation_start_time > MOTOR_STEP_TIME:
             print(f"Step {angle_index}/{MOTOR_STEPS} started.")
 
             with data_lock:
                 data["progress"] = int((angle_index + 1*0.33) * 100 / MOTOR_STEPS)
+            # Prende LEDs blancos y toma foto RGB, actualiza el contador RGB
             WHITE_LIGHT.value = True
             UV_LIGHT.value = False
             IR_LIGHT.value = False
@@ -310,6 +320,7 @@ def main():
 
             with data_lock:
                 data["progress"] = int((angle_index + 1*0.66) * 100 / MOTOR_STEPS)
+            # Prende LEDs infrarojos y toma foto RE, actualiza el contador RE
             WHITE_LIGHT.value = False
             IR_LIGHT.value = True
             UV_LIGHT.value = False
@@ -319,6 +330,7 @@ def main():
 
             with data_lock:
                 data["progress"] = int((angle_index + 1)*100/MOTOR_STEPS)
+            # Prende LEDs uv y toma foto RGN, actualiza el contador RGN
             WHITE_LIGHT.value = False
             IR_LIGHT.value = False
             UV_LIGHT.value = True
@@ -326,6 +338,7 @@ def main():
             rgn_camera.read()
             bogos_binted_u += 1
 
+            # Ya tomó las fotos y que hay fotos sin transferir
             rotated = True
             transferred = False
             angle_index += 1
@@ -334,16 +347,20 @@ def main():
             UV_LIGHT.value = False
             WHITE_LIGHT.value = False
 
+    # Si hay fotos sin transferir y si, o ya llegó al final o se detuvo manualmente, entonces transfiere las imagenes
     if not transferred and (angle_index >= MOTOR_STEPS or not data["running"]):
         print(f"Transferring {angle_index} images.")
+        # Desmonta la SD de las multiespectrales
         # re_camera.toggle_mount()
         rgn_camera.toggle_mount()  
 
+        # Transfiere las ultimas fotos tomadas
         # re_camera.transfer_n(angle_index, ANGLES, process_start)
         # re_camera.clear_sd()
         rgn_camera.transfer_n(angle_index, ANGLES, process_start)
         rgn_camera.clear_sd()
 
+        # Vuelve a montar las SD
         # re_camera.toggle_mount()
         rgn_camera.toggle_mount()
         angle_index = 0
