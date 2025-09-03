@@ -45,9 +45,9 @@ DXL_ID = 1
 DXL_SPEED = 50
 MOTOR_STEPS = 11
 MOTOR_STEP_TIME = 2
-MOTOR_RESET_TIME = 5
+MOTOR_RESET_TIME = 10
 ANGLES = [round(i * (300 / (MOTOR_STEPS - 1))) for i in range(MOTOR_STEPS)]
-SENSOR_READ_TIME = 0.5
+SENSOR_READ_TIME = 1
 CAMERA_FPS = 15
 API_PORT = int(os.getenv("API_PORT", "5000"))
 
@@ -135,9 +135,9 @@ def read_sensor_data():
         with data_lock:
             data["temp"] = dht.temperature
             data["hum"] = dht.humidity
-            data["white_lux"] = bh.lux
-            data["ir_lux"] = tsl.infrared
-            data["uv_lux"] = ltr.uvi
+            data["white_lux"] = round(bh.lux, 1)
+            data["ir_lux"] = round(tsl.infrared, 1)
+            data["uv_lux"] = round(ltr.uvi,1)
         time.sleep(SENSOR_READ_TIME)
 
 # API endpoints
@@ -283,6 +283,7 @@ def main():
             print(f"Starting rotation at angle {ANGLES[angle_index]} degrees.")
             angle = ANGLES[angle_index]
             dxl.set_goal_position(degree_to_byte(angle))
+            print(f"degree: {degree_to_byte(angle)}")
             rotation_start_time = time.time()
             rotated = False
 
@@ -296,7 +297,7 @@ def main():
             print(f"Step {angle_index}/{MOTOR_STEPS} started.")
 
             with data_lock:
-                data["progress"] = int((angle_index + 1) * 100 * 0.0 / MOTOR_STEPS)
+                data["progress"] = int((angle_index + 1*0.33) * 100 / MOTOR_STEPS)
             WHITE_LIGHT.value = True
             UV_LIGHT.value = False
             IR_LIGHT.value = False
@@ -308,7 +309,7 @@ def main():
                 bogos_binted_w += 1
 
             with data_lock:
-                data["progress"] = int((angle_index + 1) * 100 * (1/3) / MOTOR_STEPS)
+                data["progress"] = int((angle_index + 1*0.66) * 100 / MOTOR_STEPS)
             WHITE_LIGHT.value = False
             IR_LIGHT.value = True
             UV_LIGHT.value = False
@@ -316,6 +317,8 @@ def main():
             # re_camera.read()
             # bogos_binted_i += 1
 
+            with data_lock:
+                data["progress"] = int((angle_index + 1)*100/MOTOR_STEPS)
             WHITE_LIGHT.value = False
             IR_LIGHT.value = False
             UV_LIGHT.value = True
