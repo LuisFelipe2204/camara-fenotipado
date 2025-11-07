@@ -1,18 +1,23 @@
-import digitalio
-import adafruit_tsl2561, adafruit_dht, adafruit_bh1750, adafruit_ltr390
-import cv2
-from cv2.typing import MatLike
-from flask import Flask, Response, request, jsonify
-import threading
-from modules.survey3 import Survey3
-from modules.ax12 import Ax12
-import busio
-import board
-import time
-from dotenv import load_dotenv
-import os
 import base64
+import os
+import threading
+import time
 from collections import defaultdict
+
+import adafruit_bh1750
+import adafruit_dht
+import adafruit_ltr390
+import adafruit_tsl2561
+import board
+import busio
+import cv2
+import digitalio
+from cv2.typing import MatLike
+from dotenv import load_dotenv
+from flask import Flask, Response, jsonify, request
+
+from modules.ax12 import Ax12
+from modules.survey3 import Survey3
 
 load_dotenv()
 
@@ -36,10 +41,11 @@ for pin in [START_BTN, STOP_BTN]:
 
 # Constants
 CAM_RGB_INDEX = 0
+CAMTOP_RGB_INDEX = 1
 CAM_SRC_RGN = "/media/sise/0000-0001/DCIM/Photo"
 CAM_SRC_RE = "/media/sise/0000-00011/DCIM/Photo"
 CAM_DEST = "/home/sise/Desktop/pictures"
-DXL_DEVICENAME = '/dev/ttyAMA0'
+DXL_DEVICENAME = "/dev/ttyAMA0"
 DXL_BAUDRATE = 1_000_000
 DXL_ID = 1
 DXL_SPEED = 50
@@ -61,10 +67,11 @@ dxl = Ax12(DXL_ID)
 dxl.set_moving_speed(DXL_SPEED)
 dxl.set_goal_position(0)
 dht = adafruit_dht.DHT22(DHT_PIN, use_pulseio=False)
-tsl = adafruit_tsl2561.TSL2561(i2c)
-bh = adafruit_bh1750.BH1750(i2c)
-ltr = adafruit_ltr390.LTR390(i2c)
+# tsl = adafruit_tsl2561.TSL2561(i2c)
+# bh = adafruit_bh1750.BH1750(i2c)
+# ltr = adafruit_ltr390.LTR390(i2c)
 rgb_camera = cv2.VideoCapture(CAM_RGB_INDEX)
+rgb_cameratop = cv2.VideoCapture(CAMTOP_RGB_INDEX)
 re_camera = Survey3(RE_CAMERA, "RE", CAM_SRC_RE, CAM_DEST)
 rgn_camera = Survey3(RGN_CAMERA, "RGN", CAM_SRC_RGN, CAM_DEST)
 
@@ -87,9 +94,10 @@ data = {
     "angle": 0,
     "progress": 0,
 }
-bogos_binted_w = 0
-bogos_binted_i = 0
-bogos_binted_u = 0
+num_pictures_rgb = 0
+num_pictures_rgbtop = 0
+num_pictures_ir = 0
+num_pictures_uv = 0
 
 # Time variables
 rotation_start_time = 0
@@ -98,31 +106,37 @@ process_start = 0
 
 # Camera thread
 frame_lock = threading.Lock()
+frametop_lock = threading.Lock()
 stop_event = threading.Event()
 current_frame = None
 
 # Sensor thread
 data_lock = threading.Lock()
 
+
 # Thread functions
 def start_api():
     """Start the Flask API server in a separate thread."""
     app.run(host="0.0.0.0", port=API_PORT, debug=False, use_reloader=False)
 
-def generate_frames():
+
+def generate_frames(device: cv2.VideoCapture, lock: threading.Lock):
     """Generate frames from the RGB camera for video streaming.
     Yields:
         bytes: The JPEG-encoded frame data.
     """
     while not stop_event.is_set():
-        with frame_lock:
-            ret, frame = rgb_camera.read()
-        if not ret: continue
-        _, buffer = cv2.imencode('.jpg', frame)
+        with lock:
+            ret, frame = device.read()
+        if not ret:
+            print("Camera failure")
+            continue
+        _, buffer = cv2.imencode(".jpg", frame)
         yield (
-            b'--frame\r\n'
-            b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n'
+            b"--frame\r\n"
+            b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n"
         )
+
 
 def read_sensor_data():
     """Read data from the sensors and update the global data dictionary."""
@@ -133,12 +147,18 @@ def read_sensor_data():
         except RuntimeError as e:
             print(f"DHT Sensor error: {e}")
         with data_lock:
-            data["temp"] = dht.temperature
-            data["hum"] = dht.humidity
-            data["white_lux"] = round(bh.lux, 1)
-            data["ir_lux"] = round(tsl.infrared, 1)
-            data["uv_lux"] = round(ltr.uvi,1)
+            # data["temp"] = dht.temperature
+            # data["hum"] = dht.humidity
+            data["temp"] = 1
+            data["hum"] = 1
+            # data["white_lux"] = round(bh.lux, 1)
+            # data["ir_lux"] = round(tsl.infrared, 1)
+            # data["uv_lux"] = round(ltr.uvi,1)
+            data["white_lux"] = 1
+            data["ir_lux"] = 1
+            data["uv_lux"] = 1
         time.sleep(SENSOR_READ_TIME)
+
 
 # API endpoints
 @app.route("/dashboard")
@@ -150,8 +170,9 @@ def serve_dashboard():
     with data_lock:
         return data
 
+
 @app.route("/dashboard/<string:key>", methods=["POST"])
-def update_dashboard_var(key):
+def update_dashboard_var(key: str):
     """Update a dashboard variable with a new value.
     Args:
         key (str): The key of the variable to update.
@@ -169,28 +190,46 @@ def update_dashboard_var(key):
             return {key: data[key]}
     return {"error": f"{key} not found"}, 404
 
-@app.route("/video")
-def serve_video():
+
+@app.route("/video/<int:camera>")
+def serve_video(camera: int):
     """Serve the video stream from the RGB camera."""
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    print(f"Serving camera {camera}")
+    if camera == 0:
+        lock = frame_lock
+        device = rgb_camera
+    elif camera == 1:
+        lock = frametop_lock
+        device = rgb_cameratop
+    else:
+        print(f"Camera error {camera}")
+        return {"error": "Invalid camera index"}, 400
+    return Response(
+        generate_frames(device, lock),
+        mimetype="multipart/x-mixed-replace; boundary=frame",
+    )
+
 
 @app.route("/dashboard/photos")
 def serve_photos():
     photos_dir = CAM_DEST
 
-    # Define the limits per category
     category_limits = {
-        "RGB": bogos_binted_w,
-        "RGN": bogos_binted_u,
-        "RE": bogos_binted_i
+        "RGB": num_pictures_rgb,
+        "RGBT": num_pictures_rgbtop,
+        "RGN": num_pictures_uv,
+        "RE": num_pictures_ir,
     }
 
-    # Store photos per category
     categorized_files = defaultdict(list)
 
     try:
         # Filter only image files
-        files = [f for f in os.listdir(photos_dir) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+        files = [
+            f
+            for f in os.listdir(photos_dir)
+            if f.lower().endswith((".jpg", ".jpeg", ".png"))
+        ]
 
         # Categorize and sort by timestamp
         for f in files:
@@ -209,38 +248,45 @@ def serve_photos():
 
         for category, items in categorized_files.items():
             # Sort by timestamp (descending) and take the last N
-            items = sorted(items, key=lambda x: x[0], reverse=True)[:category_limits[category]]
+            items = sorted(items, key=lambda x: x[0], reverse=True)[
+                : category_limits[category]
+            ]
 
             for _, file in items:
                 full_path = os.path.join(photos_dir, file)
                 with open(full_path, "rb") as image_file:
                     encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
-                photos_payload.append({
-                    "filename": file,
-                    "content": encoded_string,
-                    "content_type": "image/jpeg" if file.lower().endswith(".jpg") else "image/png"
-                })
+                photos_payload.append(
+                    {
+                        "filename": file,
+                        "content": encoded_string,
+                        "content_type": (
+                            "image/jpeg"
+                            if file.lower().endswith(".jpg")
+                            else "image/png"
+                        ),
+                    }
+                )
 
-        response = {
-            "photo_counts": category_limits,
-            "photos": photos_payload
-        }
+        response = {"photo_counts": category_limits, "photos": photos_payload}
 
         return jsonify(response)
 
     except Exception as e:
         return {"error": str(e)}, 500
 
+
 # Functions
-def save_rgb_image(frame: MatLike, timestamp: float, step=0):
+def save_rgb_image(prefix: str, frame: MatLike, timestamp: float, step=0):
     """Save the RGB image to the specified directory with a timestamp and step number.
     Args:
         frame (MatLike): The image frame to save.
         timestamp (float): The timestamp to use for the filename.
         step (int, optional): The step number for the filename. Defaults to 0.
     """
-    filename = f"RGB-{time.strftime('%Y%m%d-%H%M%S', time.localtime(timestamp))}-step{step}.png"
+    filename = f"{prefix}-{time.strftime('%Y%m%d-%H%M%S', time.localtime(timestamp))}-step{step}.png"
     cv2.imwrite(f"{CAM_DEST}/{filename}", frame)
+
 
 def degree_to_byte(degree: int) -> int:
     """Convert a degree value to a byte value for the servo motor.
@@ -250,6 +296,7 @@ def degree_to_byte(degree: int) -> int:
         int: The converted byte value, clamped between 0 and 1023.
     """
     return min(max(degree * 1023 // 300, 0), 1023)
+
 
 def debounce_button(pin, old_state) -> bool:
     """Debounce a button press to avoid false triggers.
@@ -264,11 +311,12 @@ def debounce_button(pin, old_state) -> bool:
         return pin.value
     return old_state
 
+
 def main():
     """Main function to handle the chamber operations.
     Reads sensor data, manages button states, controls the servo motor, and handles camera operations.
     """
-    global start, stop, angle_index, rotated, transferred, rotation_start_time, sensor_read_time, process_start, bogos_binted_w, bogos_binted_i, bogos_binted_u
+    global start, stop, angle_index, rotated, transferred, rotation_start_time, sensor_read_time, process_start, num_pictures_rgb, num_pictures_ir, num_pictures_uv, num_pictures_rgbtop
 
     new_start = debounce_button(START_BTN, start)
     new_stop = debounce_button(STOP_BTN, stop)
@@ -297,34 +345,38 @@ def main():
             print(f"Step {angle_index}/{MOTOR_STEPS} started.")
 
             with data_lock:
-                data["progress"] = int((angle_index + 1*0.33) * 100 / MOTOR_STEPS)
+                data["progress"] = int((angle_index + 1 * 0.33) * 100 / MOTOR_STEPS)
             WHITE_LIGHT.value = True
             UV_LIGHT.value = False
             IR_LIGHT.value = False
             time.sleep(0.5)
             with frame_lock:
                 ret, frame = rgb_camera.read()
+                rettop, frametop = rgb_cameratop.read()
             if ret:
-                save_rgb_image(frame, process_start, angle_index)
-                bogos_binted_w += 1
+                save_rgb_image("RGB", frame, process_start, angle_index)
+                num_pictures_rgb += 1
+            if rettop:
+                save_rgb_image("RGBT", frametop, process_start, angle_index)
+                num_pictures_rgbtop += 1
 
             with data_lock:
-                data["progress"] = int((angle_index + 1*0.66) * 100 / MOTOR_STEPS)
+                data["progress"] = int((angle_index + 1 * 0.66) * 100 / MOTOR_STEPS)
             WHITE_LIGHT.value = False
             IR_LIGHT.value = True
             UV_LIGHT.value = False
             time.sleep(0.5)
             # re_camera.read()
-            # bogos_binted_i += 1
+            # num_pictures_ir += 1
 
             with data_lock:
-                data["progress"] = int((angle_index + 1)*100/MOTOR_STEPS)
+                data["progress"] = int((angle_index + 1) * 100 / MOTOR_STEPS)
             WHITE_LIGHT.value = False
             IR_LIGHT.value = False
             UV_LIGHT.value = True
             time.sleep(0.5)
             rgn_camera.read()
-            bogos_binted_u += 1
+            num_pictures_uv += 1
 
             rotated = True
             transferred = False
@@ -337,12 +389,12 @@ def main():
     if not transferred and (angle_index >= MOTOR_STEPS or not data["running"]):
         print(f"Transferring {angle_index} images.")
         # re_camera.toggle_mount()
-        rgn_camera.toggle_mount()  
+        rgn_camera.toggle_mount()
 
         # re_camera.transfer_n(angle_index, ANGLES, process_start)
         # re_camera.clear_sd()
-        rgn_camera.transfer_n(angle_index, ANGLES, process_start)
-        rgn_camera.clear_sd()
+        # rgn_camera.transfer_n(angle_index, ANGLES, process_start)
+        # rgn_camera.clear_sd()
 
         # re_camera.toggle_mount()
         rgn_camera.toggle_mount()
@@ -353,6 +405,7 @@ def main():
     # Update states
     start = new_start
     stop = new_stop
+
 
 if __name__ == "__main__":
     api_thread = threading.Thread(target=start_api, daemon=True)

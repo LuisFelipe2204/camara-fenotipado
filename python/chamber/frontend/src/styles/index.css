@@ -12,7 +12,8 @@ body {
   margin: 0;
   padding: 0;
   font-family: "Segoe UI", sans-serif;
-  background-color: black;
+  background-color: white;
+overflow:hidden;
 }
 
 main {
@@ -24,12 +25,11 @@ main {
 
 #background {
   position: absolute;
-  inset: 0;
+  inset: -4rem;
   content: "";
   background-image: url("../assets/background-cacao.jpg");
-  background-size: cover;
-  background-position: center bottom;
-  filter: blur(1rem) brightness(80%);
+  background-size: cover; background-position: center bottom;
+  filter: blur(3rem) brightness(1);
   isolation: isolate;
   z-index: -1;
 }

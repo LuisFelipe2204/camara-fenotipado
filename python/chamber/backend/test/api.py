@@ -11,149 +11,149 @@ from collections import defaultdict
 load_dotenv()
 
 # Constants
-CAM_RGB_INDEX = 0
-# CAM_DEST = "/home/rpi4sise1/Desktop/pictures"
-CAM_DEST = "./"
-CAMERA_FPS = 15
-API_PORT = int(os.getenv("API_PORT", "8000"))
+CAM_RGB_INDEX    = 0
+CAM_RGB_TOP_INDEX= 2
+CAM_DEST         = "./"
+CAMERA_WIDTH     = 320
+CAMERA_HEIGHT    = 240
+CAMERA_FPS       = 10
+API_PORT         = int(os.getenv("API_PORT", "5000"))
 
-# Library initialization
-rgb_camera = cv2.VideoCapture(CAM_RGB_INDEX)
 app = Flask(__name__)
 
-# Variables
-last_update = 0
-last_picture = 0
+# Shared data
 data = {
-    "temp": 0,
-    "hum": 0,
+    "temp":      0,
+    "hum":       0,
     "white_lux": 0,
-    "ir_lux": 0,
-    "uv_lux": 0,
-    "running": False,
+    "ir_lux":    0,
+    "uv_lux":    0,
+    "running":   False,
     "direction": 0,
-    "angle": 0,
-    "progress": 0,
+    "angle":     0,
+    "progress":  0,
 }
 bogos_binted_w = 0
 bogos_binted_i = 0
 bogos_binted_u = 0
 
-# Camera thread
-frame_lock = threading.Lock()
-stop_event = threading.Event()
-current_frame: bytes = b""
-
 data_lock = threading.Lock()
+stop_event = threading.Event()
 
-# Thread functions
-def start_api():
-    app.run(host="0.0.0.0", port=API_PORT, debug=False, use_reloader=False)
+# Threaded camera capture
+class CameraThread(threading.Thread):
+    def __init__(self, device_index, width, height, fps):
+        super().__init__(daemon=True)
+        self.device_index = device_index
+        self.width  = width
+        self.height = height
+        self.fps    = fps
+        self.capture = cv2.VideoCapture(device_index)
+        # set capture parameters
+        self.capture.set(cv2.CAP_PROP_FRAME_WIDTH,  width)
+        self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        self.capture.set(cv2.CAP_PROP_FOURCC,
+                         cv2.VideoWriter_fourcc(*'MJPG'))
+        self.capture.set(cv2.CAP_PROP_FPS, fps)
+        self.lock   = threading.Lock()
+        self.frame  = None
 
-def generate_frames():
+    def run(self):
+        while not stop_event.is_set():
+            ret, frm = self.capture.read()
+            if not ret or frm is None or frm.size == 0:
+                # log once maybe
+                print(f"[WARN] Camera {self.device_index} read failed (ret={ret})")
+                time.sleep(0.1)
+                continue
+            with self.lock:
+                self.frame = frm.copy()
+            # limit the rate
+            time.sleep(1.0 / self.fps)
+
+    def get_frame(self):
+        with self.lock:
+            if self.frame is None:
+                return None
+            return self.frame.copy()
+
+    def release(self):
+        self.capture.release()
+
+
+# Create two camera threads
+cam0_thread = CameraThread(CAM_RGB_INDEX,     CAMERA_WIDTH, CAMERA_HEIGHT, CAMERA_FPS)
+cam1_thread = CameraThread(CAM_RGB_TOP_INDEX, CAMERA_WIDTH, CAMERA_HEIGHT, CAMERA_FPS)
+
+cam0_thread.start()
+cam1_thread.start()
+
+def generate_frames(camera_thread: CameraThread):
     while not stop_event.is_set():
-        with frame_lock:
-            ret, frame = rgb_camera.read()
-        if not ret: continue
+        frame = camera_thread.get_frame()
+        if frame is None:
+            # no frame yet
+            time.sleep(0.01)
+            continue
+        success, buffer = cv2.imencode('.jpg', frame)
+        if not success:
+            print("[ERROR] imencode failed")
+            continue
+        jpg_bytes = buffer.tobytes()
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' +
+               jpg_bytes +
+               b'\r\n')
+        # optional sleep to pace streaming
+        time.sleep(1.0 / camera_thread.fps)
 
-        _, buffer = cv2.imencode('.jpg', frame)
-        yield (
-            b'--frame\r\n'
-            b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n'
-        )
-
-def read_sensor_data():
-    global data_lock, data, bogos_binted_i, bogos_binted_w, bogos_binted_u
-    while not stop_event.is_set():
-        with data_lock:
-            data["temp"] = round(random.uniform(10, 40), 1)
-            data["hum"] = round(random.uniform(20, 100), 1)
-            data["white_lux"] = round(random.uniform(0, 1000), 1)
-            data["ir_lux"] = round(random.uniform(0, 1000), 1)
-            data["uv_lux"] = round(random.uniform(0, 14), 1)
-            data["direction"] = random.choice([-1, 0, 1])
-            data["angle"] = random.randint(0, 300)
-            print(data)
-
-            if data["progress"] == 0:
-                bogos_binted_i = 0
-                bogos_binted_w = 0
-                bogos_binted_u = 0
-
-            if data["running"]:
-                data["progress"] += random.randint(0, 10)
-            if data["progress"] > 100:
-                data["progress"] = 100
-            elif data["progress"] == 100:
-                data["progress"] = 0
-        time.sleep(0.5)
-
-def save_rgb_image(frame, timestamp: float, step=0):
-    filename = f"RGB-{time.strftime('%Y%m%d-%H%M%S', time.localtime(timestamp))}-step{step}.png"
-    cv2.imwrite(f"{CAM_DEST}/{filename}", frame)
-
+# Routes for dashboard and photos (unchanged logic)
 @app.route("/dashboard")
 def serve_dashboard():
     with data_lock:
-        return data
+        return jsonify(data)
 
 @app.route("/dashboard/photos")
 def serve_photos():
     photos_dir = CAM_DEST
-
-    # Define the limits per category
     category_limits = {
         "RGB": bogos_binted_w,
         "RGN": bogos_binted_u,
-        "RE": bogos_binted_i
+        "RE":  bogos_binted_i
     }
 
-    # Store photos per category
     categorized_files = defaultdict(list)
-
     try:
-        # Filter only image files
-        files = [f for f in os.listdir(photos_dir) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
-
-        # Categorize and sort by timestamp
+        files = [f for f in os.listdir(photos_dir) if f.lower().endswith((".jpg",".jpeg",".png"))]
         for f in files:
             parts = f.split("-")
             if len(parts) < 3:
-                continue  # Skip bad format
-
-            category = parts[0].upper()
+                continue
+            category  = parts[0].upper()
             timestamp = parts[1] + "-" + parts[2]
             if category in category_limits:
-                # Use timestamp as sort key
                 categorized_files[category].append((timestamp, f))
 
-        # Prepare payload
         photos_payload = []
-
         for category, items in categorized_files.items():
-            # Sort by timestamp (descending) and take the last N
             items = sorted(items, key=lambda x: x[0], reverse=True)[:category_limits[category]]
-
             for _, file in items:
                 full_path = os.path.join(photos_dir, file)
                 with open(full_path, "rb") as image_file:
-                    encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
+                    encoded = base64.b64encode(image_file.read()).decode("utf-8")
                 photos_payload.append({
-                    "filename": file,
-                    "content": encoded_string,
+                    "filename":     file,
+                    "content":      encoded,
                     "content_type": "image/jpeg" if file.lower().endswith(".jpg") else "image/png"
                 })
 
         response = {
             "photo_counts": category_limits,
-            "photos": photos_payload
+            "photos":       photos_payload
         }
-
         return jsonify(response)
-
     except Exception as e:
         return {"error": str(e)}, 500
-
 
 @app.route("/dashboard/<string:key>", methods=["POST"])
 def update_dashboard_var(key):
@@ -168,34 +168,50 @@ def update_dashboard_var(key):
             return {key: data[key]}
     return {"error": f"{key} not found"}, 404
 
-@app.route("/video")
-def serve_video():
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+# Video streaming routes
+@app.route("/video/0")
+def video0():
+    return Response(generate_frames(cam0_thread),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
-def main():
-    global last_update, last_picture, bogos_binted_w
-    
-    process_start = time.time()
-    if data["running"] and process_start - last_picture > 2:
-        with frame_lock:
-            ret, frame = rgb_camera.read()
-        if ret:
-            save_rgb_image(frame, process_start)
-            bogos_binted_w += 1
-        last_picture = process_start
+@app.route("/video/1")
+def video1():
+    return Response(generate_frames(cam1_thread),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
+
+# Main monitoring loop if you still use one
+def main_loop():
+    global bogos_binted_w, last_update, last_picture
+    last_picture = 0
+    while not stop_event.is_set():
+        process_start = time.time()
+        with data_lock:
+            if data["running"] and process_start - last_picture > 2:
+                # get frames
+                f0 = cam0_thread.get_frame()
+                f1 = cam1_thread.get_frame()
+                if f0 is not None:
+                    save_rgb_image("RGB",  f0, process_start)
+                    bogos_binted_w += 1
+                if f1 is not None:
+                    save_rgb_image("RGBT", f1, process_start)
+                last_picture = process_start
+        time.sleep(0.1)
+
+def save_rgb_image(prefix, frame, timestamp: float, step=0):
+    filename = f"{prefix}-{time.strftime('%Y%m%d-%H%M%S', time.localtime(timestamp))}-step{step}.png"
+    cv2.imwrite(os.path.join(CAM_DEST, filename), frame)
 
 if __name__ == "__main__":
-    api_thread = threading.Thread(target=start_api, daemon=True)
-    sensor_thread = threading.Thread(target=read_sensor_data, daemon=True)
+    sensor_thread = threading.Thread(target=lambda: read_sensor_data_loop(), daemon=True)
+    sensor_thread.start()
     try:
-        api_thread.start()
-        sensor_thread.start()
-        while True:
-            main()
-            time.sleep(0.1)
+        # Start Flask
+        app.run(host="0.0.0.0", port=API_PORT, threaded=True, use_reloader=False)
     except KeyboardInterrupt:
         print("\nExiting...")
     finally:
         stop_event.set()
-        rgb_camera.release()
+        cam0_thread.release()
+        cam1_thread.release()
         os._exit(0)

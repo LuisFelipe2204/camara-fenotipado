@@ -51,14 +51,13 @@ main {
   font-weight: 700;
   border-radius: 100vmax;
 }
-#camera {
+#camera, #camera1 {
   display: flex;
   align-items: stretch;
-  padding: 0;
-  background-color: black;
+  background-color: white;
   overflow: hidden;
 }
-#camera img {
+#camera img, #camera1 img {
   height: 100%;
   width: auto;
   object-fit: contain;

@@ -43,7 +43,7 @@
               <td>Fotos RGB</td>
               <td id="popup-rgb">11</td>
             </tr>
-            <tr">
+            <tr>
               <td>Fotos RGN</td>
               <td id="popup-rgn">11</td>
             </tr>
@@ -57,100 +57,104 @@
       </div>
     </section>
 
-    <main class="row">
-      <div class="column" style="flex: 3 1 0">
-        <div class="row" style="flex: 1 1 0">
+    <main class="column" style="height: calc(100vh - 6.25rem)">
+      <div class="row" style="flex: 5 1 0">
+        <div class="column" style="flex: 5 1 0; margin: 0">
           <div class="widget" id="camera">
+            <p class="title">Top View</p>
             <img alt="" id="cam-video" />
           </div>
         </div>
-        <div class="row" style="flex: 1 1 0; margin: 0">
-          <div class="column" style="flex: 1 1 0; margin: 0">
-            <div class="widget temp-button" id="running">
-              <button class="border active">
-                <div class="state"></div>
-              </button>
-            </div>
+        <div class="column" style="flex: 5 1 0; margin: 0">
+          <div class="widget" id="camera1">
+            <p class="title">Side View</p>
+            <img alt="" id="cam-video1" />
           </div>
-          <div class="column" style="flex: 1 1 0; margin: 0">
-            <div class="row" style="flex: 1 1 0">
+        </div>
+        <div class="column" style="flex: 8 1 0; margin: 0">
+          <div class="row" style="flex: 1 1 0">
+            <div
+              class="widget temp-thermometer"
+              id="temp"
+              style="--clr: #e0ab41"
+              data-title="Temperatura"
+              data-value="0"
+              data-unit="°C"
+            ></div>
+            <div
+              class="widget temp-waterdrop"
+              id="hum"
+              style="--clr: #42b3ce"
+              data-title="Humedad"
+              data-value="0"
+              data-unit="%"
+            ></div>
+          </div>
+          <div class="row" style="flex: 1 1 0">
+            <div class="row" style="flex: 1 1 0; margin: 0">
               <div
-                class="widget temp-progress"
-                id="progress"
-                style="--clr: magenta"
-                data-title="Progreso"
+                class="widget temp-bulb"
+                id="white_lux"
+                style="--clr: #505050"
+                data-title="Luz Blanca"
                 data-value="0"
-                data-unit="%"
+                data-unit="lux"
               ></div>
-            </div>
-            <div class="row" style="flex: 1 1 0">
               <div
-                class="widget temp-value"
-                id="angle"
-                style="--clr: black"
-                data-title="Ángulo"
+                class="widget temp-bulb"
+                id="ir_lux"
+                style="--clr: hsl(0, 70%, 55%)"
+                data-title="Luz Infrarroja"
                 data-value="0"
-                data-unit="°"
+                data-unit="lux"
+              ></div>
+              <div
+                class="widget temp-bulb"
+                id="uv_lux"
+                style="--clr: hsl(310, 70%, 55%)"
+                data-title="Luz Ultravioleta"
+                data-value="0"
+                data-unit="lux"
               ></div>
             </div>
           </div>
         </div>
       </div>
-      <div class="column" style="flex: 2 1 0">
-        <div class="row" style="flex: 2 1 0">
+      <div class="row" style="flex: 1 1 0">
+        <div class="row" style="flex: 4 1 0; margin: 0">
           <div
-            class="widget temp-thermometer"
-            id="temp"
-            style="--clr: #e0ab41"
-            data-title="Temperatura"
+            class="widget temp-value"
+            id="angle"
+            style="--clr: black"
+            data-title="Ángulo"
             data-value="0"
-            data-unit="°C"
+            data-unit="°"
           ></div>
           <div
-            class="widget temp-waterdrop"
-            id="hum"
-            style="--clr: #42b3ce"
-            data-title="Humedad"
+            class="widget temp-progress"
+            id="progress"
+            style="--clr: magenta"
+            data-title="Progreso"
             data-value="0"
             data-unit="%"
           ></div>
         </div>
-        <div class="row" style="flex: 2 1 0">
-          <div
-            class="widget temp-bulb"
-            id="white_lux"
-            style="--clr: #505050"
-            data-title="Luz Blanca"
-            data-value="0"
-            data-unit="lux"
-          ></div>
-          <div
-            class="widget temp-bulb"
-            id="ir_lux"
-            style="--clr: hsl(0, 70%, 55%)"
-            data-title="Luz Infrarroja"
-            data-value="0"
-            data-unit="lux"
-          ></div>
-          <div
-            class="widget temp-bulb"
-            id="uv_lux"
-            style="--clr: hsl(310, 70%, 55%)"
-            data-title="Luz Ultravioleta"
-            data-value="0"
-            data-unit="lux"
-          ></div>
+        <div class="column" style="flex: 1 1 0; margin: 0">
+          <div class="widget temp-button" id="running">
+            <button class="border active">
+              <div class="state"></div>
+            </button>
+          </div>
         </div>
-        <div class="row" style="flex: 0 0 auto">
+        <div class="column" style="flex: 4 1 0; margin: 0">
           <div class="widget credits">
             <div class="names">
               <h3>Realizado por:</h3>
               <p>Luis Felipe Arciniegas Espitia</p>
               <p>Nicolás José Sánchez Mendoza</p>
-              <p>Emmanuel Londoño Bedoya</p>
-              <p>Pedro Luis Rodríguez Gómez</p>
-              <p>Valeria Vargas Vargas</p>
+              <p>Samuel Giraldo Cortés</p>
               <p>Nicolás Castro Restrepo</p>
+	      <p>Centro de Laboratorios</p>
             </div>
             <div class="logo">
               <img src="./assets/sise-logo.jpg" alt="" />
@@ -212,3 +216,4 @@
     </template>
   </body>
 </html>
+
