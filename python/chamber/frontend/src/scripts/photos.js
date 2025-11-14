@@ -1,53 +1,36 @@
 const imagePopup = document.getElementById("image-popup");
+const wrapper = document.getElementById("image-view-wrapper");
+
+const imageSideTitle = document.querySelector("#image-view-side .image-title");
+const imageSideImage = document.querySelector("#image-view-side .image-image");
+
+const imageTopTitle = document.querySelector("#image-view-top .image-title");
+const imageTopImage = document.querySelector("#image-view-top .image-image");
+
+const imageRETitle = document.querySelector("#image-view-re .image-title");
+const imageREImage = document.querySelector("#image-view-re .image-image");
+
+const imageRGNTitle = document.querySelector("#image-view-rgn .image-title");
+const imageRGNImage = document.querySelector("#image-view-rgn .image-image");
+
+let carouselIndex = 0;
+const images = {
+  RE: [],
+  RGN: [],
+  RGB: [],
+  RGBT: [],
+};
 
 const photoData = {
   RGB: document.getElementById("popup-rgb"),
+  RGBT: document.getElementById("popup-rgbt"),
   RE: document.getElementById("popup-re"),
   RGN: document.getElementById("popup-rgn"),
   total: document.getElementById("popup-total"),
 };
 
-
-const createImageCarousel = (photos) => {
-  const wrapper = document.querySelector('.image-view-wrapper');
-  wrapper.innerHTML = ''; // Clear existing content
-
-  if (!photos.length) {
-    wrapper.textContent = 'No photos available.';
-    return;
-  }
-
-  let currentIndex = 0;
-
-  // Create title element
-  const title = document.createElement('div');
-  title.classList.add('image-title');
-  title.textContent = photos[0].filename;
-  title.style.textAlign = 'center';
-  title.style.marginBottom = '10px';
-  title.style.fontWeight = 'bold';
-
-  // Create image element
-  const img = document.createElement('img');
-  img.src = `data:${photos[0].content_type};base64,${photos[0].content}`;
-  img.style.maxWidth = '100%';
-  img.style.cursor = 'pointer';
-  img.style.display = 'block';
-  img.style.margin = '0 auto';
-
-  // Click to cycle
-  img.addEventListener('click', () => {
-    currentIndex = (currentIndex + 1) % photos.length;
-    const current = photos[currentIndex];
-    img.src = `data:${current.content_type};base64,${current.content}`;
-    title.textContent = current.filename;
-  });
-
-  wrapper.appendChild(title);
-  wrapper.appendChild(img);
-}
-
 document.addEventListener("progressDone", async () => {
+  // Fetch all images when progress is done
   imagePopup.classList.remove("popup-hidden");
 
   const res = await fetch("/api/dashboard/photos", {
@@ -61,29 +44,58 @@ document.addEventListener("progressDone", async () => {
    * @type {{
    *   photo_counts: {
    *     RGB: number,
+   *     RGBT: number,
    *     RE: number,
    *     RGN: number
    *   },
-   *   photos: Array<{
-   *     filename: string,
-   *     content: string,
-   *     content_type: "image/jpeg" | "image/png"
-   *   }>
+   *   photos: {
+   *     RGB: Array<{ filename: string, content: string, content_type: "image/jpeg" | "image/png" }>,
+   *     RGBT: Array<{ filename: string, content: string, content_type: "image/jpeg" | "image/png" }>,
+   *     RE: Array<{ filename: string, content: string, content_type: "image/jpeg" | "image/png" }>,
+   *     RGN: Array<{ filename: string, content: string, content_type: "image/jpeg" | "image/png" }>
+   *   }
    * }}
    */
   const data = await res.json();
+  carouselIndex = 0;
 
   photoData.RGB.textContent = data.photo_counts.RGB;
+  photoData.RGBT.textContent = data.photo_counts.RGBT;
   photoData.RE.textContent = data.photo_counts.RE;
   photoData.RGN.textContent = data.photo_counts.RGN;
-  photoData.total.textContent =
-    data.photo_counts.RGB + data.photo_counts.RE + data.photo_counts.RGN;
+  photoData.total.textContent = Object.values(photo_counts).reduce(
+    (total, curr) => (total += curr),
+    total
+  );
 
-  console.log(data);
-  createImageCarousel(data.photos);
+  const mapImages = (image) => ({
+    title: image.filename,
+    image: image.content,
+  });
+
+  images.RE = data.photos.RE.map(mapImages);
+  images.RGN = data.photos.RGN.map(mapImages);
+  images.RGB = data.photos.RGB.map(mapImages);
+  images.RGBT = data.photos.RGBT.map(mapImages);
 });
 
-document.addEventListener("click", function (event) {
+wrapper.addEventListener("click", (event) => {
+  // Set the next image on the elements on click
+  carouselIndex = (carouselIndex + 1) % images.RGB.length;
+
+  imageRETitle.textContent = images.RE[carouselIndex]?.title || "";
+  imageSideTitle.textContent = images.RGB[carouselIndex]?.title || "";
+  imageTopTitle.textContent = images.RGBT[carouselIndex]?.title || "";
+  imageRGNTitle.textContent = images.RGN[carouselIndex]?.title || "";
+
+  imageREImage.src = images.RE[carouselIndex]?.content || "";
+  imageSideImage.src = images.RGB[carouselIndex]?.content || "";
+  imageTopImage.src = images.RGBT[carouselIndex]?.content || "";
+  imageRGNImage.src = images.RGN[carouselIndex]?.content || "";
+});
+
+document.addEventListener("click", (event) => {
+  // Close the popup when clicked outside
   const popup = document.getElementById("image-popup");
   const content = popup.querySelector(".popup-content");
 

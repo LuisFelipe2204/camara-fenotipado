@@ -31,7 +31,7 @@ const States = {
 
 const donePopup = document.getElementById("done-popup");
 
-let oldDone = false;
+let oldRunning = false;
 
 const loop = async () => {
   const res = await fetch("/api/dashboard");
@@ -41,6 +41,7 @@ const loop = async () => {
   }
   const data = await res.json();
 
+  // Updates all the visible data
   for (const [key, value] of Object.entries(data)) {
     /**
      * @type {HTMLElement | null}
@@ -63,10 +64,11 @@ const loop = async () => {
     }
   }
 
-  let done = data.progress === 100;
-  if (!oldDone && done) {
+  let running = data.running === 1;
+  if (!running && oldRunning) {
     btn.classList.toggle("active", false);
     const event = new CustomEvent("progressDone");
+    document.dispatchEvent(event);
 
     await fetch("/api/dashboard/running?value=0", {
       method: "POST",
@@ -74,10 +76,9 @@ const loop = async () => {
         "Content-Type": "application/json",
       },
     });
-    document.dispatchEvent(event);
     btn.classList.toggle("active", true);
-	oldDone = true;
   }
+  oldRunning = running;
 };
 
-setInterval(loop, 2000);
+setInterval(loop, 1000);
