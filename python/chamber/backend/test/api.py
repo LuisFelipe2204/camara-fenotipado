@@ -3,6 +3,7 @@ import os
 import random
 import threading
 import time
+from typing import Optional, Dict, Any
 
 import cv2
 from dotenv import load_dotenv
@@ -29,7 +30,6 @@ data = {
     "ir_lux": 0,
     "uv_lux": 0,
     "running": False,
-    "direction": 0,
     "angle": 0,
     "progress": 0,
 }
@@ -105,6 +105,11 @@ def serve_dashboard():
     with data_lock:
         return jsonify(data)
 
+def set_with_padding(arr, index, item):
+    if index >= len(arr):
+        arr.extend([None] * (index + 1 - len(arr)))
+    arr[index] = item
+    return arr
 
 @app.route("/dashboard/photos")
 def serve_photos():
@@ -116,17 +121,29 @@ def serve_photos():
         "RGN": photos_taken["uv"],
         "RE": photos_taken["ir"],
     }
-    photos = {key: [{} for _ in range(limits[key])] for key in limits}
-
+    photos = {
+        "RGBT": [],
+        "RGB": [],
+        "RGN": [],
+        "RE": [],
+    }
+    #photos: dict[str, list[Optional[Dict[str, Any]]]] = {key: [None] * limits[key] for key in limits}
+    #print(photos)
     # Get all image files and sort them newest to oldest
     files = [file for file in os.listdir(PHOTOS_DIR) if file.lower().endswith(FORMATS)]
     files.sort(
         key=lambda file: os.path.getctime(os.path.join(PHOTOS_DIR, file)), reverse=True
     )
 
-    latest_timestamp = extract_photo_name(files[0])["timestamp"]
+    if len(files) == 0:
+        print("Tried serving photos but there's none")
+        return jsonify({ "photo_counts": limits, "photos": photos })
+
+    latest_timestamp = extract_photo_name(files[0])[1]
+    print(f"Latest timestamp found is {latest_timestamp} and found {len(files)} files in total")
     for file in files:
         label, timestamp, step, ext = extract_photo_name(file)
+        print(f"Comparing timestamps {timestamp} with latest {latest_timestamp}")
         if timestamp != latest_timestamp:
             continue
 
@@ -135,16 +152,20 @@ def serve_photos():
             continue
 
         full_path = os.path.join(PHOTOS_DIR, file)
+        print(f"Processing file {full_path}")
         with open(full_path, "rb") as image_file:
             content = base64.b64encode(image_file.read()).decode("utf-8")
-        photos[label].insert(
-            int(step),
-            {
-                "filename": file,
-                "content": content,
-                "content_type": "image/jpeg" if ext == "jpg" else "image/png",
-            },
-        )
+        print(f"Adding file: {file}")
+        set_with_padding(photos[label], int(step), {
+            "filename": file,
+            "content": content,
+            "content_type": "image/jpeg" if ext == "jpg" else "image/png",
+        })
+        #photos[label][int(step)] = {
+        #    "filename": file,
+        #    "content": content,
+        #    "content_type": "image/jpeg" if ext == "jpg" else "image/png",
+        #}
 
     return jsonify({"photo_counts": limits, "photos": photos})
 
@@ -177,19 +198,21 @@ def video(index):
 
 
 def save_rgb_image(prefix, frame, timestamp: float, step=0):
-    filename = f"{prefix}-{time.strftime('%Y%m%d-%H%M%S', time.localtime(timestamp))}-step{step}.png"
+    filename = f"{prefix}-{time.strftime('%Y%m%d-%H%M%S', time.localtime(timestamp))}-{step}.png"
     cv2.imwrite(os.path.join(CAM_DEST, filename), frame)
 
 
 def extract_photo_name(name: str):
     label, date, time, end = name.split("-")
     step, extension = end.split(".")
-    return {
-        "label": label,
-        "timestamp": f"{date}-{time}",
-        "step": int(step),
-        "ext": extension,
-    }
+    return (label, f"{date}-{time}", step, extension)
+
+#{
+ #       "label": label,
+  #      "timestamp": f"{date}-{time}",
+   #     "step": int(step),
+    #    "ext": extension,
+    #}
 
 
 process_start = 0
@@ -204,7 +227,6 @@ def read_sensor_data():
             data["white_lux"] = round(random.uniform(0, 1000), 1)
             data["ir_lux"] = round(random.uniform(0, 1000), 1)
             data["uv_lux"] = round(random.uniform(0, 14), 1)
-            data["direction"] = random.choice([-1, 0, 1])
             data["angle"] = random.randint(0, 300)
 
             if data["progress"] == 0 and not data["running"]:
@@ -212,10 +234,9 @@ def read_sensor_data():
                 photos_taken["top"] = 0
                 photos_taken["ir"] = 0
                 photos_taken["uv"] = 0
+                process_start = time.time()
 
             if data["running"]:
-                if data["progress"] == 0:
-                    process_start = time.time()
                 data["progress"] += 10
 
             if data["progress"] > 100:
@@ -229,24 +250,38 @@ def read_sensor_data():
 def main_loop():
     global photos_taken, last_update, last_picture, process_start
     last_picture = 0
+    local_start = process_start
+    steps = 0
+
     while not stop_event.is_set():
         with data_lock:
+            if local_start != process_start:
+                steps = 0
+                local_start = process_start
+
             if data["running"] and time.time() - last_picture > 2:
                 frame = cam_thread.get_frame()
                 frame_top = cam_top_thread.get_frame()
+
                 if frame is not None:
-                    save_rgb_image("RGB", frame, process_start)
-                    photos_taken["side"] += 1
+                    save_rgb_image("RGB", frame, process_start, steps)
+                photos_taken["side"] += 1
+
                 if frame_top is not None:
-                    save_rgb_image("RGBT", frame_top, process_start)
-                    photos_taken["top"] += 1
+                    save_rgb_image("RGBT", frame_top, process_start, steps)
+                photos_taken["top"] += 1
+
                 last_picture = time.time()
+                steps += 1  # Increment ONLY when photos are taken
+
         time.sleep(0.1)
 
 
 if __name__ == "__main__":
     sensor_thread = threading.Thread(target=read_sensor_data, daemon=True)
+    main_thread = threading.Thread(target=main_loop, daemon=True)
     sensor_thread.start()
+    main_thread.start()
     try:
         app.run(host="0.0.0.0", port=API_PORT, threaded=True, use_reloader=False)
     except KeyboardInterrupt:
@@ -256,3 +291,4 @@ if __name__ == "__main__":
         cam_thread.release()
         cam_top_thread.release()
         os._exit(0)
+

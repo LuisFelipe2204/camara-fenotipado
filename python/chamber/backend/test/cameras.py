@@ -5,8 +5,8 @@ from modules.survey3 import Survey3
 import time
 
 # Pin I/O
-RE_CAMERA_PIN = digitalio.DigitalInOut(board.D23)
-RGN_CAMERA_PIN = digitalio.DigitalInOut(board.D24)
+RE_CAMERA_PIN = digitalio.DigitalInOut(board.D24)
+RGN_CAMERA_PIN = digitalio.DigitalInOut(board.D23)
 
 # Set pin directions
 RE_CAMERA_PIN.direction = digitalio.Direction.OUTPUT
@@ -23,7 +23,7 @@ DESTINATION = "/home/sise/Desktop/pictures"
 rgb_camera = VideoCapture(RGB_CAMERA_INDEX)
 rgb_cameratop = VideoCapture(RGB_CAMERA_INDEX)
 re_camera = Survey3(RE_CAMERA_PIN, "RE", SOURCE_RE, DESTINATION)
-# rgn_camera = Survey3(RGN_CAMERA_PIN, "RGN", SOURCE_RGN, DESTINATION)
+rgn_camera = Survey3(RGN_CAMERA_PIN, "RGN", SOURCE_RGN, DESTINATION)
 process_start = 0
 
 # Functions
@@ -42,21 +42,21 @@ def main():
     match cmd:
         case 1:
             print("Triggering...")
-            # re_camera.read()
-            # rgn_camera.read()
-            success, frame = rgb_camera.read()
-            successtop, frametop = rgb_cameratop.read()
-            if success:
-                save_rgb_image("RGB", frame, time.time())
-            if successtop:
-                save_rgb_image("RGBT", frametop, time.time())
+            re_camera.read()
+            rgn_camera.read()
+            #success, frame = rgb_camera.read()
+            #successtop, frametop = rgb_cameratop.read()
+            #if success:
+            #    save_rgb_image("RGB", frame, time.time())
+            #if successtop:
+            #    save_rgb_image("RGBT", frametop, time.time())
         case 2:
             print("Mount/Dismount")
-            # re_camera.toggle_mount()
-            # rgn_camera.toggle_mount()
+            re_camera.toggle_mount()
+            rgn_camera.toggle_mount()
         case 3:
             re_camera.transfer_latest()
-            # rgn_camera.transfer_latest()
+            rgn_camera.transfer_latest()
         case 4:
             print("Mimicking main...")
             process_start = time.time() * 1

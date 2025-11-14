@@ -26,7 +26,6 @@ const photoData = {
   RGBT: document.getElementById("popup-rgbt"),
   RE: document.getElementById("popup-re"),
   RGN: document.getElementById("popup-rgn"),
-  total: document.getElementById("popup-total"),
 };
 
 document.addEventListener("progressDone", async () => {
@@ -57,26 +56,35 @@ document.addEventListener("progressDone", async () => {
    * }}
    */
   const data = await res.json();
+  console.log(data)
   carouselIndex = 0;
 
   photoData.RGB.textContent = data.photo_counts.RGB;
   photoData.RGBT.textContent = data.photo_counts.RGBT;
   photoData.RE.textContent = data.photo_counts.RE;
   photoData.RGN.textContent = data.photo_counts.RGN;
-  photoData.total.textContent = Object.values(photo_counts).reduce(
-    (total, curr) => (total += curr),
-    total
-  );
 
   const mapImages = (image) => ({
-    title: image.filename,
-    image: image.content,
+    title: image ? image.filename : "",
+    image: image ? `data:${image.content_type};base64,${image.content}` : "",
   });
 
   images.RE = data.photos.RE.map(mapImages);
   images.RGN = data.photos.RGN.map(mapImages);
   images.RGB = data.photos.RGB.map(mapImages);
   images.RGBT = data.photos.RGBT.map(mapImages);
+
+  console.log(images);
+
+  imageRETitle.textContent = images.RE[carouselIndex]?.title || "";
+  imageSideTitle.textContent = images.RGB[carouselIndex]?.title || "";
+  imageTopTitle.textContent = images.RGBT[carouselIndex]?.title || "";
+  imageRGNTitle.textContent = images.RGN[carouselIndex]?.title || "";
+
+  imageREImage.src = images.RE[carouselIndex]?.image || "";
+  imageSideImage.src = images.RGB[carouselIndex]?.image || "";
+  imageTopImage.src = images.RGBT[carouselIndex]?.image || "";
+  imageRGNImage.src = images.RGN[carouselIndex]?.image || "";
 });
 
 wrapper.addEventListener("click", (event) => {
@@ -88,10 +96,10 @@ wrapper.addEventListener("click", (event) => {
   imageTopTitle.textContent = images.RGBT[carouselIndex]?.title || "";
   imageRGNTitle.textContent = images.RGN[carouselIndex]?.title || "";
 
-  imageREImage.src = images.RE[carouselIndex]?.content || "";
-  imageSideImage.src = images.RGB[carouselIndex]?.content || "";
-  imageTopImage.src = images.RGBT[carouselIndex]?.content || "";
-  imageRGNImage.src = images.RGN[carouselIndex]?.content || "";
+  imageREImage.src = images.RE[carouselIndex]?.image || "";
+  imageSideImage.src = images.RGB[carouselIndex]?.image || "";
+  imageTopImage.src = images.RGBT[carouselIndex]?.image || "";
+  imageRGNImage.src = images.RGN[carouselIndex]?.image || "";
 });
 
 document.addEventListener("click", (event) => {

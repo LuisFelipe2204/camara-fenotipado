@@ -6,7 +6,6 @@ const Variables = {
   uv_lux: document.getElementById("uv_lux"),
   running: document.getElementById("running"),
   progress: document.getElementById("progress"),
-  direction: document.getElementById("direction"),
   angle: document.getElementById("angle"),
 };
 
@@ -17,7 +16,6 @@ const Limits = {
   ir_lux: [0, 1000],
   uv_lux: [0, 16],
   running: [0, 1],
-  direction: [-1, 1],
   angle: [0, 300],
   progress: [0, 100],
 };
