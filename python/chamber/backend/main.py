@@ -5,6 +5,7 @@ import logging
 import os
 import threading
 import time
+import shutil
 
 import adafruit_bh1750
 import adafruit_dht
@@ -16,7 +17,7 @@ import cv2
 import digitalio
 from cv2.typing import MatLike
 from dotenv import load_dotenv
-from flask import Flask, Response, jsonify, request
+from flask import Flask, Response, jsonify, request, stream_with_context
 
 from modules.ax12 import Ax12
 from modules.survey3 import Survey3
@@ -65,7 +66,7 @@ DXL_DEVICENAME = "/dev/ttyAMA0"
 DXL_BAUDRATE = 1_000_000
 DXL_ID = 1
 DXL_SPEED = 50
-MOTOR_STEPS = 11
+MOTOR_STEPS = 6
 MOTOR_STEP_TIME = 2
 MOTOR_RESET_TIME = 10
 ANGLES = [round(i * (300 / (MOTOR_STEPS - 1))) for i in range(MOTOR_STEPS)]
@@ -235,7 +236,9 @@ def transfer_survey_cameras(camera: Survey3):
     Args:
         camera: The camera object from Survey3 module
     """
+    logging.info("Dismounted camera %s", camera.id)
     camera.toggle_mount()
+    logging.info("Began transferring pictures from %s", camera.id)
     camera.transfer_n(states["angle"], states["session"], times["process_start"])
     camera.clear_sd()
     camera.toggle_mount()
@@ -285,7 +288,7 @@ def serve_video(index):
 
     server = preview_cameras[index]
     return Response(
-        generate_frames(server),
+        stream_with_context(generate_frames(server)),
         mimetype="multipart/x-mixed-replace; boundary=frame",
     )
 
@@ -296,6 +299,7 @@ def serve_photos():
     Returns:
         dict: All the photo contents stored by all cameras
     """
+
     photos_dir = utils.get_session_dirpath(CAM_DEST, states["session"])
     formats = (".jpg", ".jpeg", ".png")
     limits = {
@@ -310,6 +314,8 @@ def serve_photos():
         "RGN": [],
         "RE": [],
     }
+    if not states["transferred"]:
+        return jsonify({"photo_counts": limits, "photos": photos, "completed": False})
 
     # Get all image files and sort them newest to oldest
     files = [file for file in os.listdir(photos_dir) if file.lower().endswith(formats)]
@@ -319,7 +325,7 @@ def serve_photos():
 
     if len(files) == 0:
         logging.error("Tried serving photos via API but there's none stored.")
-        return jsonify({"photo_counts": limits, "photos": photos})
+        return jsonify({"photo_counts": limits, "photos": photos, "completed": True})
 
     latest_timestamp = utils.extract_photo_name(files[0])[1]
     logging.debug(
@@ -347,7 +353,7 @@ def serve_photos():
             },
         )
 
-    return jsonify({"photo_counts": limits, "photos": photos})
+    return jsonify({"photo_counts": limits, "photos": photos, "completed": True})
 
 
 @app.route("/session/download")
@@ -381,6 +387,17 @@ def serve_single_session(session: int):
             "Content-Disposition": f"attachment; filename=session-{session}.zip"
         }
     )
+
+
+@app.route("/session/delete", methods=["DELETE"])
+def delete_all_sessions():
+    """Deletes all of the session directories"""
+    try:
+        shutil.rmtree(CAM_DEST)
+        os.mkdir(CAM_DEST)
+    except Exception as e:
+        return jsonify({ "ok": False, "reason": str(e) })
+    return jsonify({ "ok": True, "reason": "" })
 
 
 def move_motor_next():
@@ -463,10 +480,10 @@ def main():
         for t in threads:
             t.start()
         for t in threads:
+            logging.info("Waiting for cameras to transfer")
             t.join()
 
         states["angle"] = 0
-        move_motor_next()
         states["transferred"] = True
         data["running"] = False
 

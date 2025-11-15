@@ -15,8 +15,8 @@
 .popup-content {
   display: flex;
   flex-direction: column;
-  width: clamp(20rem, 90vw, 70rem);
-  height: clamp(10rem, 90vh, 50rem);
+  width: clamp(20rem, 90%, 80rem);
+  height: clamp(10rem, 90%, 60rem);
   background-color: white;
   border-radius: 1rem;
 }
@@ -36,30 +36,46 @@
   justify-content: center;
   gap: 1rem;
 }
-.popup-section table td:first-of-type {
+.popup-section table td {
   font-weight: 700;
+  font-size: 1.25rem;
+}
+.popup-section table td:first-of-type {
   padding-right: 1rem;
-  font-size: 1.5rem;
 }
 .popup-section table td:last-of-type {
   text-align: right;
 }
 .image-view-wrapper {
   flex: 1 1 0;
-  background-color: var(--bg-3);
-  border-radius: calc(1rem - 0.5rem);
+}
+.image-view-wrapper > div {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  background-color: #00000030;
+  border-radius: .5rem;
 }
 
 .image-title {
+  flex: 0 0 auto;
   text-align: center;
-  margin-bottom: 10px;
+  margin: .5rem 0;
   font-weight: bold;
+}
+.image-wrapper {
+  flex: 1 1 0;
+  display: flex;
+  overflow: hidden;
 }
 .image-image {
   max-width: 100%;
+  max-height: 100%;
   cursor: pointer;
-  display: block;
   margin: 0 auto;
+  width: auto;
+  height: auto;
+  object-fit: contain;
 }
 
 .image-view-wrapper {
@@ -67,4 +83,18 @@
   grid-template-columns: 50% 50%;
   grid-template-rows: 50% 50%;
   gap: .25rem;
+}
+.popup-sidebar {
+  display: flex;
+  flex-direction: column;
+}
+.pages {
+  margin-top: auto;
+  align-self: center;
+  font-size: 1.25rem;
+  color: #000000c0;
+}
+.pages #current-page {
+  color: black;
+  font-weight: 600;
 }

@@ -13,7 +13,11 @@ const imageREImage = document.querySelector("#image-view-re .image-image");
 const imageRGNTitle = document.querySelector("#image-view-rgn .image-title");
 const imageRGNImage = document.querySelector("#image-view-rgn .image-image");
 
+const currentPages = document.getElementById("current-page")
+const totalPages = document.getElementById("total-pages")
+
 let carouselIndex = 0;
+let max_length = 0;
 const images = {
   RE: [],
   RGN: [],
@@ -28,41 +32,75 @@ const photoData = {
   RGN: document.getElementById("popup-rgn"),
 };
 
+/**
+ * 
+ * @param {number} maxAttempts The maximum amount of tries
+ * @param {number} delayMs The delay between polling requests in milliseconds
+ * @returns {Promise<{ 
+ *   photo_counts: { 
+ *     RGB: number, 
+ *     RGBT: number, 
+ *     RE: number, 
+ *     RGN: number 
+ *   },
+ *   photos: { 
+ *     RGB: Array<{ filename: string, content: string, content_type: "image/jpeg" | "image/png" }>, 
+ *     RGBT: Array<{ filename: string, content: string, content_type: "image/jpeg" | "image/png" }>, 
+ *     RE: Array<{ filename: string, content: string, content_type: "image/jpeg" | "image/png" }>, 
+ *     RGN: Array<{ filename: string, content: string, content_type: "image/jpeg" | "image/png" }>
+ *   }, 
+ *   completed: boolean 
+ *  }>}
+ */
+async function pollPhotos(maxAttempts = 60, delayMs = 2000) {
+  let attempts = 0;
+  while (attempts < maxAttempts) {
+    attempts++;
+
+    try {
+      const res = await fetch("/api/dashboard/photos", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await res.json();
+
+      if (data.completed) return data;
+    } catch (err) {
+      console.error("Error polling photos:", err);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+
+  console.warn("Max polling attempts reached without completion");
+  return null;
+}
+
+
 document.addEventListener("progressDone", async () => {
-  // Fetch all images when progress is done
+  photoData.RGB.textContent = "...";
+  photoData.RGBT.textContent = "...";
+  photoData.RE.textContent = "...";
+  photoData.RGN.textContent = "...";
+
   imagePopup.classList.remove("popup-hidden");
 
-  const res = await fetch("/api/dashboard/photos", {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
+  const finalData = await pollPhotos();
+  if (!finalData) {
+    console.warn("Polling did not complete in time");
+    return;
+  }
 
-  /**
-   * @type {{
-   *   photo_counts: {
-   *     RGB: number,
-   *     RGBT: number,
-   *     RE: number,
-   *     RGN: number
-   *   },
-   *   photos: {
-   *     RGB: Array<{ filename: string, content: string, content_type: "image/jpeg" | "image/png" }>,
-   *     RGBT: Array<{ filename: string, content: string, content_type: "image/jpeg" | "image/png" }>,
-   *     RE: Array<{ filename: string, content: string, content_type: "image/jpeg" | "image/png" }>,
-   *     RGN: Array<{ filename: string, content: string, content_type: "image/jpeg" | "image/png" }>
-   *   }
-   * }}
-   */
-  const data = await res.json();
-  console.log(data)
+  const data = finalData;
   carouselIndex = 0;
-
-  photoData.RGB.textContent = data.photo_counts.RGB;
-  photoData.RGBT.textContent = data.photo_counts.RGBT;
-  photoData.RE.textContent = data.photo_counts.RE;
-  photoData.RGN.textContent = data.photo_counts.RGN;
+  max_length = Math.max(
+    images.RGB.length,
+    images.RGBT.length,
+    images.RE.length,
+    images.RGN.length
+  );
 
   const mapImages = (image) => ({
     title: image ? image.filename : "",
@@ -74,7 +112,18 @@ document.addEventListener("progressDone", async () => {
   images.RGB = data.photos.RGB.map(mapImages);
   images.RGBT = data.photos.RGBT.map(mapImages);
 
-  console.log(images);
+  max_length = Math.max(
+    images.RGB.length,
+    images.RGBT.length,
+    images.RE.length,
+    images.RGN.length
+  );
+  totalPages.textContent = max_length;
+
+  photoData.RGB.textContent = images.RGB.length;
+  photoData.RGBT.textContent = images.RGBT.length;
+  photoData.RE.textContent = images.RE.length;
+  photoData.RGN.textContent = images.RGN.length;
 
   imageRETitle.textContent = images.RE[carouselIndex]?.title || "";
   imageSideTitle.textContent = images.RGB[carouselIndex]?.title || "";
@@ -87,9 +136,10 @@ document.addEventListener("progressDone", async () => {
   imageRGNImage.src = images.RGN[carouselIndex]?.image || "";
 });
 
-wrapper.addEventListener("click", (event) => {
+wrapper.addEventListener("click", () => {
   // Set the next image on the elements on click
-  carouselIndex = (carouselIndex + 1) % images.RGB.length;
+  carouselIndex = (carouselIndex + 1) % max_length;
+  currentPages.textContent = carouselIndex;
 
   imageRETitle.textContent = images.RE[carouselIndex]?.title || "";
   imageSideTitle.textContent = images.RGB[carouselIndex]?.title || "";
@@ -100,17 +150,13 @@ wrapper.addEventListener("click", (event) => {
   imageSideImage.src = images.RGB[carouselIndex]?.image || "";
   imageTopImage.src = images.RGBT[carouselIndex]?.image || "";
   imageRGNImage.src = images.RGN[carouselIndex]?.image || "";
+
+
 });
 
 imagePopup.addEventListener("click", (event) => {
-  // Close the popup when clicked outside
-  console.log("Closing popup")
   const content = imagePopup.querySelector(".popup-content");
-
-  if (
-    !imagePopup.classList.contains("popup-hidden") &&
-    !content.contains(event.target)
-  ) {
+  if (!imagePopup.classList.contains("popup-hidden") && !content.contains(event.target)) {
     imagePopup.classList.add("popup-hidden");
   }
 });

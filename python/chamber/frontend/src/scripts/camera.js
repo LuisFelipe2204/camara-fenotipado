@@ -26,12 +26,9 @@ camera1.onerror = () => {
 };
 
 setInterval(() => {
-  const now = Date.now();
-  if (now - lastUpdate0 > 5000) 
-    reloadStream0();
-  if (now - lastUpdate1 > 5000) 
-    reloadStream1();
-}, 1000);
+  reloadStream0();
+  reloadStream1();
+}, 2000);
 
 reloadStream0();
 reloadStream1();
