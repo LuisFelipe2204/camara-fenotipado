@@ -75,3 +75,5 @@ dmypy.json
 # Docker files
 *.env
 docker-compose.override.yml
+
+images/
