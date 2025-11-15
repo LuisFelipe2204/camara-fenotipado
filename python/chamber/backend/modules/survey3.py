@@ -3,6 +3,7 @@ import time
 from os import listdir, path, remove
 
 import digitalio
+from utils.utils import generate_photo_name, get_session_dirpath
 
 
 class Pulse:
@@ -59,7 +60,7 @@ class Survey3:
         )
         return True
 
-    def transfer_n(self, n: int, steps: list[int], timestamp: float = 0):
+    def transfer_n(self, n: int, session: int, timestamp: float = 0):
         if timestamp == 0:
             timestamp = time.time()
 
@@ -83,11 +84,9 @@ class Survey3:
             return False
 
         for i, file in enumerate(files[:n]):
-            time_str = time.strftime("%Y%m%d-%H%M%S", time.localtime(timestamp))
-            step_inverse = steps[i]
             shutil.move(
                 path.join(self.origin, file),
-                f"{self.dest}/{self.id}-{time_str}-step{step_inverse}.JPG",
+                path.join(get_session_dirpath(self.dest, session), generate_photo_name(self.id, timestamp, i))
             )
         return True
 

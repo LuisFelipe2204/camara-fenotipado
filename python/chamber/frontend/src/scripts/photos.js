@@ -102,15 +102,15 @@ wrapper.addEventListener("click", (event) => {
   imageRGNImage.src = images.RGN[carouselIndex]?.image || "";
 });
 
-document.addEventListener("click", (event) => {
+imagePopup.addEventListener("click", (event) => {
   // Close the popup when clicked outside
-  const popup = document.getElementById("image-popup");
-  const content = popup.querySelector(".popup-content");
+  console.log("Closing popup")
+  const content = imagePopup.querySelector(".popup-content");
 
   if (
-    !popup.classList.contains("popup-hidden") &&
+    !imagePopup.classList.contains("popup-hidden") &&
     !content.contains(event.target)
   ) {
-    popup.classList.add("popup-hidden");
+    imagePopup.classList.add("popup-hidden");
   }
 });

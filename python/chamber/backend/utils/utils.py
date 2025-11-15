@@ -1,9 +1,11 @@
 """Helper functions used on the main module"""
 
 import time
+import os
+import zipfile
 
 import digitalio
-
+from io import BytesIO
 
 def generate_photo_name(prefix: str, timestamp: float, step: int) -> str:
     """Return a string representation of the photo data with camera label, time and step
@@ -23,9 +25,9 @@ def extract_photo_name(name: str):
     Args:
         name: The file name
     """
-    label, date, hour, end = name.split("-")
+    label, timestamp, end = name.split("-")
     step, extension = end.split(".")
-    return (label, f"{date}-{hour}", step, extension)
+    return (label, timestamp, step, extension)
 
 
 def insert_array_padded(array: list, index: int, item) -> list:
@@ -65,3 +67,51 @@ def debounce_button(digital_pin: digitalio.DigitalInOut, old_state: bool) -> boo
         time.sleep(0.05)
         return digital_pin.value
     return old_state
+
+
+def get_next_numeric_subdir(base_dir: str) -> int:
+    """Reads the destination directory, parses all the stored sessions and gets the largest +1
+    Args:
+        base_dir: The base directory where all the numeric directories are 
+    Returns:
+        int: The number of the next directory 
+    """
+    max_num = -1
+    for name in os.listdir(base_dir):
+        full = os.path.join(base_dir, name)
+        if not os.path.isdir(full):
+            continue
+
+        if not name.isdigit():
+            continue
+        number = int(name)
+        max_num = max(number, max_num)
+
+    return max_num + 1
+
+
+def get_session_dirpath(base: str, session: int) -> str:
+    """Builds the full path of the session directory based on the number. Creates it if needed
+    Args:
+        base: The base directory where all the numeric directories are
+        session: The number of the session you're looking for
+    Returns:
+        str: The full path of the session
+    """
+    dirpath = os.path.join(base, str(session).zfill(8))
+    os.makedirs(dirpath, exist_ok=True)
+    return dirpath
+
+
+def zip_dir(dirpath: str) -> bytes:
+    mem = BytesIO()
+    
+    with zipfile.ZipFile(mem, mode="w", compression=zipfile.ZIP_DEFLATED) as zip:
+        for root, _, files in os.walk(dirpath):
+            for file in files:
+                filepath = os.path.join(root, file)
+                relative = os.path.relpath(filepath, dirpath)
+                zip.write(filepath, relative)
+
+    mem.seek(0)
+    return mem.getvalue()
