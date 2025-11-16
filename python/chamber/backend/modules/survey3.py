@@ -4,8 +4,19 @@ from os import listdir, path, remove
 import logging
 
 import digitalio
-from utils.utils import generate_photo_name, get_session_dirpath
+from utils.utils import generate_photo_name, get_session_dirpath, safe_copy
 
+logging.basicConfig(
+    format=(
+        "\033[90m%(asctime)s\033[0m "
+        + "[\033[36m%(levelname)s\033[0m] "
+        + "[\033[33m%(module)s::%(funcName)s\033[0m] "
+        + "%(message)s"
+    ),
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=logging.INFO,
+    handlers=[logging.StreamHandler()],
+)
 
 class Pulse:
     DO_NOTHING = 0.001
@@ -36,17 +47,17 @@ class Survey3:
         self.pulse(Pulse.DO_NOTHING)
         self.pulse(Pulse.TAKE_PHOTO)
         self.pulse(Pulse.DO_NOTHING)
-        time.sleep(3)
+        time.sleep(1)
 
     def toggle_mount(self):
         self.pulse(Pulse.DO_NOTHING)
         self.pulse(Pulse.TRANSFER)
         self.pulse(Pulse.DO_NOTHING)
-        time.sleep(4)
+        time.sleep(3)
 
     def transfer_latest(self):
         if not path.exists(self.origin):
-            print(f"Error: The directory {self.origin} does not exist.")
+            logging.error("The directory %s does not exist.", self.origin)
             return False
 
         latest = None
@@ -57,10 +68,11 @@ class Survey3:
             if latest is None or path.getctime(name) > path.getctime(latest):
                 latest = name
         if latest is None:
-            print(f"No files found in {self.origin}.")
+            logging.error("No files found in %s.", self.origin)
             return False
 
-        shutil.copy2(
+
+        safe_copy(
             latest, path.join(self.dest, generate_photo_name(self.id, time.time(), 0))
         )
         remove(latest)
@@ -71,7 +83,7 @@ class Survey3:
             timestamp = time.time()
 
         if not path.exists(self.origin):
-            print(f"Error: The directory {self.origin} does not exist.")
+            logging.error("The directory %s does not exist.", self.origin)
             return False
 
         files = [
@@ -84,22 +96,21 @@ class Survey3:
         )
 
         if len(files) < n:
-            print(
-                f"Not enough files to transfer. Found {len(files)}, but expected {n}."
-            )
+            logging.error("Not enough files found in %s. Expected %d, found %d", self.origin, n, len(files))
             return False
 
         for i, file in enumerate(files[:n]):
-            shutil.copy2(
-                path.join(self.origin, file),
-                path.join(get_session_dirpath(self.dest, session), generate_photo_name(self.id, timestamp, i))
-            )
-            remove(path.join(self.origin, file))
+            src = path.join(self.origin, file)
+            dst = path.join(get_session_dirpath(self.dest, session), generate_photo_name(self.id, timestamp, i))
+
+            safe_copy(src, dst)
+            remove(src)
+
         return True
 
     def clear_sd(self):
         if not path.exists(self.origin):
-            print(f"Error: The directory {self.origin} does not exist.")
+            logging.error("The directory %s does not exist.", self.origin)
             return False
 
         for file in listdir(self.origin):
@@ -110,5 +121,5 @@ class Survey3:
             try:
                 remove(name)
             except Exception as e:
-                print(f"Failed to remove {name}: {e}")
+                logging.error("Failed to remove %s: %s", name, str(e))
         return True

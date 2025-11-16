@@ -15,6 +15,7 @@ import board
 import busio
 import cv2
 import digitalio
+import numpy as np
 from cv2.typing import MatLike
 from dotenv import load_dotenv
 from flask import Flask, Response, jsonify, request, stream_with_context
@@ -67,8 +68,8 @@ DXL_BAUDRATE = 1_000_000
 DXL_ID = 1
 DXL_SPEED = 50
 MOTOR_STEPS = 6
-MOTOR_STEP_TIME = 2
-MOTOR_RESET_TIME = 10
+MOTOR_STEP_TIME = 0.1
+MOTOR_RESET_TIME = MOTOR_STEPS * MOTOR_STEP_TIME
 ANGLES = [round(i * (300 / (MOTOR_STEPS - 1))) for i in range(MOTOR_STEPS)]
 SENSOR_READ_TIME = 1
 TOTAL_CAMERAS = 4
@@ -100,8 +101,8 @@ except ValueError:
     logging.warning("Sensor LTR390 not recognized in I2C bus.")
     ltr = None
 stop_event = threading.Event()
-rgb_camera = CameraThread(CAM_RGB_INDEX, stop_event)
-rgbt_camera = CameraThread(CAM_RGBT_INDEX, stop_event)
+rgb_camera = CameraThread(CAM_RGB_INDEX, stop_event, 800, 600)
+rgbt_camera = CameraThread(CAM_RGBT_INDEX, stop_event, 848, 480)
 preview_cameras = [rgb_camera, rgbt_camera]
 re_camera = Survey3(RE_CAMERA, "RE", CAM_SRC_RE, CAM_DEST)
 rgn_camera = Survey3(RGN_CAMERA, "RGN", CAM_SRC_RGN, CAM_DEST)
@@ -110,8 +111,8 @@ app = Flask(__name__)
 
 # Variables
 states = {
-    "start": False,
-    "stop": False,
+    "start": True,
+    "stop": True,
     "rotated": True,
     "transferred": True,
     "angle": 0,
@@ -140,6 +141,7 @@ data_lock = threading.Lock()
 # Thread functions
 def start_api():
     """Start the Flask API server in a separate thread."""
+    logging.getLogger("werkzeug").setLevel(logging.WARNING)
     app.run(host="0.0.0.0", port=API_PORT, debug=False, use_reloader=False)
 
 
@@ -150,20 +152,30 @@ def generate_frames(camera_thread: CameraThread):
     Returns:
         The HTTP streaming formatted frame
     """
+    blank = (
+        b"--frame\r\n"
+        b"Content-Type: image/jpeg\r\n\r\n" +
+        create_blank_jpeg() +
+        b"\r\n"
+    )
     while not stop_event.is_set():
         frame = camera_thread.get_frame()
         if frame is None:
-            time.sleep(0.01)
+            yield blank
+            time.sleep(1.0 / camera_thread.fps)
             continue
 
-        success, buffer = cv2.imencode(".jpg", frame)  # pylint: disable=no-member
-        if not success:
+        try:
+            success, buffer = cv2.imencode(".jpg", frame)  # pylint: disable=no-member
+            frame_bytes = buffer.tobytes()
+        except:
             logging.error(
                 "Camera %d failed during image encoding.", camera_thread.device_index
             )
+            yield blank
+            time.sleep(1.0 / camera_thread.fps)
             continue
 
-        frame_bytes = buffer.tobytes()
         yield (
             b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n"
         )
@@ -191,6 +203,16 @@ def read_sensor_data():
 
 
 # Functions
+def create_blank_jpeg():
+    # Create a 1x1 black pixel (uint8, BGR)
+    img = np.zeros((1, 1, 3), dtype=np.uint8)
+
+    success, buffer = cv2.imencode(".jpg", img)
+    if not success:
+        return b""  # fallback
+    return buffer.tobytes()
+
+
 def save_rgb_image(prefix: str, frame: MatLike, timestamp: float, step=0):
     """Save the RGB image to the specified directory with a timestamp and step number.
     Args:
@@ -231,19 +253,6 @@ def toggle_lights(state_white: bool, state_ir: bool, state_uv: bool):
     time.sleep(0.1)
 
 
-def transfer_survey_cameras(camera: Survey3):
-    """Run the transfer protocol for the Survey3 cameras
-    Args:
-        camera: The camera object from Survey3 module
-    """
-    logging.info("Dismounted camera %s", camera.id)
-    camera.toggle_mount()
-    logging.info("Began transferring pictures from %s", camera.id)
-    camera.transfer_n(states["angle"], states["session"], times["process_start"])
-    camera.clear_sd()
-    camera.toggle_mount()
-
-
 # API endpoints
 @app.route("/dashboard")
 def serve_dashboard():
@@ -266,13 +275,16 @@ def update_dashboard_var(key: str):
     try:
         value = float(request.args.get("value", 0))
     except ValueError:
-        return {"error": "Invalid value"}, 400
+        return jsonify({"error": "Invalid value"}), 400
 
+    if key == "running":
+        if value == 1 and not data["running"]:
+            states["session"] = utils.get_next_numeric_subdir(CAM_DEST)
     if key in data:
         with data_lock:
             data[key] = value
-            return {key: data[key]}
-    return {"error": f"{key} not found"}, 404
+            return jsonify({key: data[key]})
+    return jsonify({"error": f"{key} not found"}), 404
 
 
 @app.route("/video/<int:index>")
@@ -428,6 +440,8 @@ def main():
     else:
         data["progress"] = 0
         data["running"] = new_start and not states["start"]
+        if data["running"]:
+            states["session"] = utils.get_next_numeric_subdir(CAM_DEST)
 
     if data["running"]:
         if states["rotated"]:
@@ -473,15 +487,20 @@ def main():
         logging.info("Began transferring %d images from the cameras.", states["angle"])
 
         # Transfer both multispectral cameras at the same time
-        threads = [
-            threading.Thread(target=transfer_survey_cameras, args=(cam,))
-            for cam in (re_camera, rgn_camera)
-        ]
-        for t in threads:
-            t.start()
-        for t in threads:
-            logging.info("Waiting for cameras to transfer")
-            t.join()
+        logging.info("Dismounting cameras")
+        re_camera.toggle_mount()
+        rgn_camera.toggle_mount()
+        time.sleep(5)
+
+        logging.info("Began transferring pictures")
+        re_camera.transfer_n(states["angle"], states["session"], times["process_start"])
+        rgn_camera.transfer_n(states["angle"], states["session"], times["process_start"])
+        re_camera.clear_sd()
+        rgn_camera.clear_sd()
+
+        logging.info("Mounting back cameras")
+        re_camera.toggle_mount()
+        rgn_camera.toggle_mount()
 
         states["angle"] = 0
         states["transferred"] = True

@@ -1,5 +1,6 @@
 const imagePopup = document.getElementById("image-popup");
 const wrapper = document.getElementById("image-view-wrapper");
+const loader = document.getElementById("image-view-loader");
 
 const imageSideTitle = document.querySelector("#image-view-side .image-title");
 const imageSideImage = document.querySelector("#image-view-side .image-image");
@@ -78,21 +79,47 @@ async function pollPhotos(maxAttempts = 60, delayMs = 2000) {
   return null;
 }
 
+function resetImageDisplay() {
+  imageRETitle.textContent = images.RE[carouselIndex]?.title || "";
+  imageSideTitle.textContent = images.RGB[carouselIndex]?.title || "";
+  imageTopTitle.textContent = images.RGBT[carouselIndex]?.title || "";
+  imageRGNTitle.textContent = images.RGN[carouselIndex]?.title || "";
 
-document.addEventListener("progressDone", async () => {
+  imageREImage.src = images.RE[carouselIndex]?.image || "";
+  imageSideImage.src = images.RGB[carouselIndex]?.image || "";
+  imageTopImage.src = images.RGBT[carouselIndex]?.image || "";
+  imageRGNImage.src = images.RGN[carouselIndex]?.image || "";
+}
+
+document.addEventListener("resetPopup", async () => {
   photoData.RGB.textContent = "...";
   photoData.RGBT.textContent = "...";
   photoData.RE.textContent = "...";
   photoData.RGN.textContent = "...";
 
+  images.RGB = []
+  images.RGBT = []
+  images.RE = []
+  images.RGN = []
+})
+
+let transferring = false;
+
+document.addEventListener("progressDone", async () => {
   imagePopup.classList.remove("popup-hidden");
 
+  transferring = true;
+  wrapper.style.display = "none";
+  loader.style.display = "flex"
   const finalData = await pollPhotos();
   if (!finalData) {
     console.warn("Polling did not complete in time");
     return;
   }
-
+  wrapper.style.display = "grid";
+  loader.style.display = "none"
+  transferring = false;
+  
   const data = finalData;
   carouselIndex = 0;
   max_length = Math.max(
@@ -125,38 +152,25 @@ document.addEventListener("progressDone", async () => {
   photoData.RE.textContent = images.RE.length;
   photoData.RGN.textContent = images.RGN.length;
 
-  imageRETitle.textContent = images.RE[carouselIndex]?.title || "";
-  imageSideTitle.textContent = images.RGB[carouselIndex]?.title || "";
-  imageTopTitle.textContent = images.RGBT[carouselIndex]?.title || "";
-  imageRGNTitle.textContent = images.RGN[carouselIndex]?.title || "";
-
-  imageREImage.src = images.RE[carouselIndex]?.image || "";
-  imageSideImage.src = images.RGB[carouselIndex]?.image || "";
-  imageTopImage.src = images.RGBT[carouselIndex]?.image || "";
-  imageRGNImage.src = images.RGN[carouselIndex]?.image || "";
+  resetImageDisplay()
 });
 
 wrapper.addEventListener("click", () => {
   // Set the next image on the elements on click
   carouselIndex = (carouselIndex + 1) % max_length;
-  currentPages.textContent = carouselIndex;
+  currentPages.textContent = carouselIndex + 1;
 
-  imageRETitle.textContent = images.RE[carouselIndex]?.title || "";
-  imageSideTitle.textContent = images.RGB[carouselIndex]?.title || "";
-  imageTopTitle.textContent = images.RGBT[carouselIndex]?.title || "";
-  imageRGNTitle.textContent = images.RGN[carouselIndex]?.title || "";
-
-  imageREImage.src = images.RE[carouselIndex]?.image || "";
-  imageSideImage.src = images.RGB[carouselIndex]?.image || "";
-  imageTopImage.src = images.RGBT[carouselIndex]?.image || "";
-  imageRGNImage.src = images.RGN[carouselIndex]?.image || "";
-
-
+  resetImageDisplay()
 });
 
 imagePopup.addEventListener("click", (event) => {
   const content = imagePopup.querySelector(".popup-content");
   if (!imagePopup.classList.contains("popup-hidden") && !content.contains(event.target)) {
+    // Close the photos popup after transferring all photos
+    if (transferring) {
+      document.dispatchEvent(new CustomEvent("toast", { detail: { msg: "Wait for image transfer to finish before closing." } }))
+      return;
+    }
     imagePopup.classList.add("popup-hidden");
   }
 });

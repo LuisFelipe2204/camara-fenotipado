@@ -6,6 +6,19 @@ From https://github.com/aakieu/ax12_control
 """
 
 from dynamixel_sdk import *  # type: ignore # Uses Dynamixel SDK library
+import logging
+
+logging.basicConfig(
+    format=(
+        "\033[90m%(asctime)s\033[0m "
+        + "[\033[36m%(levelname)s\033[0m] "
+        + "[\033[33m%(module)s::%(funcName)s\033[0m] "
+        + "%(message)s"
+    ),
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=logging.INFO,
+    handlers=[logging.StreamHandler()],
+)
 
 # Control table ADDRess for AX-12
 # EEPROM REGISTER ADDRESSES - Permanently stored in memory once changed
@@ -299,31 +312,29 @@ class Ax12:
         """Enable torque for motor."""
         self.set_register1(ADDR_AX_TORQUE_ENABLE, 1)
         if self.DEBUG:
-            print("Torque has been successfully enabled for dxl ID: %d" % self.id)
+            logging.info("Torque has been successfully enabled for dxl ID: %d" % self.id)
 
     def disable_torque(self):
         """Disable torque."""
         self.set_register1(ADDR_AX_TORQUE_ENABLE, 0)
         if self.DEBUG:
-            print("Torque has been successfully disabled for dxl ID: %d" % self.id)
+            logging.info("Torque has been successfully disabled for dxl ID: %d" % self.id)
 
     @classmethod
     def open_port(cls):
         cls.portHandler = PortHandler(cls.DEVICENAME)
         if cls.portHandler.openPort():
-            print("Succeeded to open the port")
+            logging.info("Succeeded to open the port")
         else:
-            print("Failed to open the port")
-            print("Press any key to terminate...")
+            logging.error("Failed to open the port\nPress any key to terminate...")
             quit()
 
     @classmethod
     def set_baudrate(cls):
         if cls.portHandler.setBaudRate(cls.BAUDRATE):
-            print("Succeeded to change the baudrate")
+            logging.info("Succeeded to change the baudrate")
         else:
-            print("Failed to change the baudrate")
-            print("Press any key to terminate...")
+            logging.error("Failed to change the baudrate\nPress any key to terminate")
             quit()
 
     @classmethod
@@ -336,14 +347,14 @@ class Ax12:
     def disconnect(cls):
         # Close port
         cls.portHandler.closePort()
-        print("Successfully closed port")
+        logging.info("Successfully closed port")
 
     @staticmethod
     def check_error(comm_result, dxl_err):
         if comm_result != COMM_SUCCESS:
-            print("%s" % Ax12.packetHandler.getTxRxResult(comm_result))
+            logging.warning("%s" % Ax12.packetHandler.getTxRxResult(comm_result))
         elif dxl_err != 0:
-            print("%s" % Ax12.packetHandler.getRxPacketError(dxl_err))
+            logging.error("%s" % Ax12.packetHandler.getRxPacketError(dxl_err))
 
     @staticmethod
     def raw2deg(delta_raw):
@@ -355,4 +366,4 @@ class Ax12:
 
     @staticmethod
     def print_status(dxl_property, dxl_id, value):
-        print(dxl_property + "dxl ID: %d set to %d " % (dxl_id, value))
+        logging.info(dxl_property + "dxl ID: %d set to %d " % (dxl_id, value))

@@ -1,9 +1,11 @@
 import digitalio
 import board
+import cv2
 from cv2 import VideoCapture, imwrite
 from cv2.typing import MatLike
 from modules.survey3 import Survey3
 import time
+import os
 
 from utils import utils
 
@@ -20,13 +22,13 @@ RGB_CAMERA_INDEX = 0
 RGBTOP_CAMERA_INDEX = 2
 SOURCE_RE = "/media/sise/0000-0001/DCIM/Photo"
 SOURCE_RGN = "/media/sise/0000-00011/DCIM/Photo"
-DESTINATION = "/home/sise/Desktop/pictures"
+CAM_DEST = "/home/sise/Desktop/pictures"
 
 # Variables
 rgb_camera = VideoCapture(RGB_CAMERA_INDEX)
 rgb_cameratop = VideoCapture(RGB_CAMERA_INDEX)
-re_camera = Survey3(RE_CAMERA_PIN, "RE", SOURCE_RE, DESTINATION)
-rgn_camera = Survey3(RGN_CAMERA_PIN, "RGN", SOURCE_RGN, DESTINATION)
+re_camera = Survey3(RE_CAMERA_PIN, "RE", SOURCE_RE, CAM_DEST)
+rgn_camera = Survey3(RGN_CAMERA_PIN, "RGN", SOURCE_RGN, CAM_DEST)
 process_start = 0
 
 
@@ -40,7 +42,7 @@ def save_rgb_image(prefix: str, frame: MatLike, timestamp: float, step=0):
         step: The step number for the filename. Defaults to 0.
     """
     filename = utils.generate_photo_name(prefix, timestamp, step)
-    dirpath = utils.get_session_dirpath(CAM_DEST, states["session"])
+    dirpath = utils.get_session_dirpath(CAM_DEST, 999)
     cv2.imwrite(os.path.join(dirpath, filename), frame)  # pylint: disable=no-member
 
 

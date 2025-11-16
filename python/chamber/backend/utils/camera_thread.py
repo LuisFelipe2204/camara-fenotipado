@@ -14,17 +14,20 @@ CAMERA_FPS = 10
 class CameraThread(threading.Thread):
     """Main class representing a Camera accessible via cv2"""
 
-    def __init__(self, device_index, stop_event):
+    def __init__(self, device_index, stop_event, width, height):
         super().__init__(daemon=True)
         self.device_index = device_index
         self.fps = CAMERA_FPS
+        self.width = width
+        self.height = height
 
         self.capture = cv2.VideoCapture(device_index)  # pylint: disable=no-member
+        self.capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
         self.capture.set(
-            cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH # pylint: disable=no-member
+            cv2.CAP_PROP_FRAME_WIDTH, self.width # pylint: disable=no-member
         )
         self.capture.set(
-            cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT # pylint: disable=no-member
+            cv2.CAP_PROP_FRAME_HEIGHT, self.height # pylint: disable=no-member
         )
         self.capture.set(cv2.CAP_PROP_FPS, self.fps)  # pylint: disable=no-member
 

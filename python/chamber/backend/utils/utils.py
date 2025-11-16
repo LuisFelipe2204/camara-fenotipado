@@ -4,8 +4,22 @@ import time
 import os
 import zipfile
 
+import logging
+import shutil
 import digitalio
 from io import BytesIO
+
+logging.basicConfig(
+    format=(
+        "\033[90m%(asctime)s\033[0m "
+        + "[\033[36m%(levelname)s\033[0m] "
+        + "[\033[33m%(module)s::%(funcName)s\033[0m] "
+        + "%(message)s"
+    ),
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=logging.INFO,
+    handlers=[logging.StreamHandler()],
+)
 
 def generate_photo_name(prefix: str, timestamp: float, step: int) -> str:
     """Return a string representation of the photo data with camera label, time and step
@@ -115,3 +129,29 @@ def zip_dir(dirpath: str) -> bytes:
 
     mem.seek(0)
     return mem.getvalue()
+
+
+def safe_copy(src: str, dest: str, chunk: int=64*1024) -> bool:
+    # Retry 3 times
+    for _ in range(3):
+        try:
+            shutil.copy2(src, dest)
+            return True
+        except (OSError, IOError) as e:
+            logging.warning("Failed copying %s: %s", src, str(e))
+            os.remove(dest)
+
+        try:
+            with open(src, 'rb') as file_src, open(dest, 'wb') as file_dest:
+                while True:
+                    buffer = file_src.read(chunk)
+                    if not buffer: 
+                        break
+                    file_dest.write(buffer)
+            return True
+        except (OSError, IOError) as e:
+            logging.error("Failed manually copying %s: %s", src, str(e))
+            os.remove(dest)
+
+        time.sleep(0.5)
+    return False

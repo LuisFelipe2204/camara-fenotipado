@@ -2,17 +2,20 @@ const downloadBtn = document.getElementById("download-zip")
 const popupBtn = document.getElementById("open-popup")
 const deleteBtn = document.getElementById("delete-files")
 
+// Open the results popup
 popupBtn.addEventListener("click", () => {
     imagePopup.classList.remove("popup-hidden");
     console.log("Opening popup")
 });
 
+// Download the ZIP of all images
 downloadBtn.addEventListener("click", async () => {
     downloadBtn.disabled = true
     downloadBtn.classList.toggle("disabled", true)
     try {
+        document.dispatchEvent(new CustomEvent("toast", { detail: { msg: "Preparing files for download..." } }))
         const res = await fetch("/api/session/download")
-        if (!res.ok) return;
+        if (!res.ok) return document.dispatchEvent(new CustomEvent("toast", { detail: { msg: "Error while downloading" } }));
         
         const blob = await res.blob()
         const blobUrl = URL.createObjectURL(blob)
@@ -38,15 +41,16 @@ deleteBtn.addEventListener("click", async () => {
         const res = await fetch("/api/session/delete", {
             method: "DELETE"
         });
-        if (!res.ok) return dispatchEvent(new CustomEvent("toast", {detail: {msg: "Failed to delete stored files. Try again."}}))
+        if (!res.ok) return document.dispatchEvent(new CustomEvent("toast", {detail: {msg: "Failed to delete stored files. Try again."}}))
 
         const data = await res.json()
         console.log("Delete req", data)
         if (data.ok) {
-            dispatchEvent(new CustomEvent("toast", { detail: { msg: "Deleted stored sessions." } }))
+            console.log("Sending toasst")
+            document.dispatchEvent(new CustomEvent("toast", { detail: { msg: "Deleted stored sessions." } }))
         }
         else {
-            dispatchEvent(new CustomEvent("toast", { detail: { msg: `Error deleting files. ${data.reason}` } }))
+            document.dispatchEvent(new CustomEvent("toast", { detail: { msg: `Error deleting files. ${data.reason}` } }))
         }
     } finally {
         deleteBtn.disabled = false;
@@ -54,13 +58,17 @@ deleteBtn.addEventListener("click", async () => {
     }
 })
 
+// Display a toast
+let currentToastHide = -1;
 document.addEventListener("toast", (e) => {
-    console.log("Toastin")
     let toast = document.getElementById("toast")
-    toast.textContent = e.detail.msg
+    if (currentToastHide !== -1) clearTimeout(currentToastHide);
+    console.log("Toastin:", e.detail.msg);
+    toast.innerText = e.detail.msg
     toast.classList.toggle("popup-hidden", false);
 
-    setTimeout(() => {
+    currentToastHide = setTimeout(() => {
         toast.classList.toggle("popup-hidden", true);
+        currentToastHide = -1;
     }, 5000)
 })

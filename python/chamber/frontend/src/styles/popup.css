@@ -98,3 +98,48 @@
   color: black;
   font-weight: 600;
 }
+
+#toast {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  top: 5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 1rem;
+  background-color: white;
+  border: 1px solid black;
+  border-radius: .5rem;
+  box-shadow: 0 0 .5rem gray;
+  z-index: 9999;
+  transition: 150ms;
+}
+
+#toast.popup-hidden {
+  opacity: 0;
+
+}
+
+#image-view-loader {
+  display: none;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+}
+
+#image-view-loader > div {
+  border: 8px solid #f3f3f3;
+  border-top: 8px solid #000;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  animation: spin 1s linear infinite;
+
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
