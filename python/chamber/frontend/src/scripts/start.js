@@ -6,8 +6,8 @@ btn.addEventListener("click", async () => {
   }
 
   btn.classList.toggle("active", false);
-  const state = btn.querySelector(".state").textContent == "Ejecutando" ? 1 : 0;
-  await fetch(`/api/dashboard/running?value=${state ^ 1}`, {
+  const state = btn.querySelector(".state").textContent == "Ejecutando" ? 1 : 0; // Current state
+  await fetch(`/api/dashboard/running?value=${state ^ 1}`, { // Request a change to the opposite state
     method: "POST",
     headers: {
       "Content-Type": "application/json",

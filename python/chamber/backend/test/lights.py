@@ -16,6 +16,7 @@ led_w = False
 led_r = False
 led_u = False
 
+
 def main():
     global led_w, led_r, led_u
     pin_number = int(input("Enter the pin number to toggle the LED (17, 22, or 27): "))
@@ -37,6 +38,7 @@ def main():
         return
 
     print(f"LED {pin_number} is now {'ON' if state else 'OFF'}.")
+
 
 if __name__ == "__main__":
     try:

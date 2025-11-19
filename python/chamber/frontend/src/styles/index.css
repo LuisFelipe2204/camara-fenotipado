@@ -2,6 +2,8 @@
   --bg-1: #fff;
   --bg-2: #fff;
   --bg-3: #e0e0e0;
+  --bg-alpha: #ffffff90;
+  --border-alpha: #ffffffb0;
 
   --fg-1: #000;
   --fg-2: #171717;
@@ -12,7 +14,7 @@ body {
   margin: 0;
   padding: 0;
   font-family: "Segoe UI", sans-serif;
-  background-color: black;
+  background-color: white;
 }
 
 main {
@@ -22,15 +24,21 @@ main {
   height: calc(100dvh - 4.25rem);
 }
 
-#background {
+.background-wrapper {
   position: absolute;
   inset: 0;
+  overflow: hidden;
+  isolation: isolate;
+  z-index: -1;
+}
+#background {
+  position: absolute;
+  inset: -4rem;
   content: "";
   background-image: url("../assets/background-cacao.jpg");
   background-size: cover;
   background-position: center bottom;
-  filter: blur(1rem) brightness(80%);
-  isolation: isolate;
+  filter: blur(3rem) brightness(1);
   z-index: -1;
 }
 

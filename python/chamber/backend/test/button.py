@@ -19,6 +19,7 @@ button_io.pull = digitalio.Pull.UP
 prev_switch = switch_io.value
 prev_button = button_io.value
 
+
 def main():
     global prev_switch, prev_button
 
@@ -35,6 +36,7 @@ def main():
     if prev_button and not curr_button:
         print("Button pressed")
     prev_button = curr_button
+
 
 if __name__ == "__main__":
     try:

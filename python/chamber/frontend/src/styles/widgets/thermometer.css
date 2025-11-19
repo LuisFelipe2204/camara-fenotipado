@@ -18,15 +18,17 @@
   padding-bottom: 0;
   border-bottom: 0;
   border-radius: 100vmax 100vmax 0 0;
+  transform: translateY(0.5rem);
 }
 .thermometer .bar {
   width: calc(var(--size) - 1rem);
-  height: var(--value);
+  height: calc(var(--value) - 0.5rem);
   background-color: var(--clr);
-  border: 0.5rem solid var(--bg-2);
+  border: 0.5rem solid transparent;
   border-bottom: 0;
   border-radius: 100vmax 100vmax 0 0;
   transition: 100ms;
+  background-clip: padding-box;
 }
 .thermometer .ball-border {
   position: relative;
@@ -40,17 +42,18 @@
   width: var(--size);
   height: var(--size);
   background-color: var(--clr);
-  border: 0.5rem solid var(--bg-2);
+  border: 0.5rem solid transparent;
   border-radius: 100vmax;
   isolation: isolate;
+  background-clip: padding-box;
 }
 .thermometer .ball-border::before {
   position: absolute;
-  content: "";
   top: -0.25rem;
   width: calc(var(--size) + 0.4rem);
   height: 1rem;
   background-color: var(--fg-1);
+  background-clip: padding-box;
 }
 .thermometer .ball-border::after {
   position: absolute;
@@ -59,8 +62,9 @@
   width: calc(var(--size) - 1rem);
   height: 0.85rem;
   background-color: var(--clr);
-  border: 0.5rem solid var(--bg-2);
+  border: 0.5rem solid transparent;
   border-top: 0;
   border-bottom: 0;
   z-index: 1;
+  background-clip: padding-box;
 }

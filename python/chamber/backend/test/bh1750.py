@@ -9,6 +9,7 @@ i2c = busio.I2C(board.SCL, board.SDA)
 # Variables
 sensor = adafruit_bh1750.BH1750(i2c)
 
+
 def main():
     lux = sensor.lux
     if lux is not None:
@@ -16,6 +17,7 @@ def main():
     else:
         print("Failed to read from BH1750 sensor!")
     time.sleep(2)
+
 
 if __name__ == "__main__":
     try:

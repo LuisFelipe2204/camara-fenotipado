@@ -10,6 +10,7 @@ sensor = adafruit_dht.DHT22(DHT_PIN, use_pulseio=False)
 sucess = 0
 fail = 0
 
+
 def main():
     global sucess, fail
 
@@ -28,6 +29,7 @@ def main():
         print("Failed to read from DHT sensor!")
 
     time.sleep(0.4)
+
 
 if __name__ == "__main__":
     try:

@@ -23,7 +23,8 @@ main {
   flex-direction: column;
   flex: 1 1 0;
   padding: 1rem;
-  background-color: var(--bg-2);
+  background-color: var(--bg-alpha);
+  border: 1px solid var(--border-alpha);
   border-radius: 0.5rem;
 }
 .widget .title {
@@ -45,20 +46,18 @@ main {
   margin: 0 auto;
   width: 100%;
   color: var(--fg-1);
-  border: 0.25rem solid var(--clr);
   text-align: center;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
-  border-radius: 100vmax;
+  border-radius: .25rem;
 }
-#camera {
+#camera, #camera1 {
   display: flex;
   align-items: stretch;
-  padding: 0;
-  background-color: black;
+  background-color: var(--bg-alpha);
   overflow: hidden;
 }
-#camera img {
+#camera img, #camera1 img {
   height: 100%;
   width: auto;
   object-fit: contain;
@@ -71,9 +70,9 @@ main {
   padding: 0.5rem;
   /* background-color: hsl(120, 60%, 70%); */
   color: white;
-  background-color: white;
+  background-color: var(--bg-alpha);
   border: 0.5rem solid #055495;
-  box-shadow: 0 0 0 .25rem white;
+  box-shadow: 0 0 0 .25rem var(--border-alpha);
   border-radius: 0.4rem;
 }
 .credits .names {
@@ -93,7 +92,7 @@ main {
   align-items: center;
   justify-content: center;
   padding: 0.5rem;
-  background-color: white;
+  background-color: transparent;
   border-radius: 0.5rem;
 }
 .credits .logo img {

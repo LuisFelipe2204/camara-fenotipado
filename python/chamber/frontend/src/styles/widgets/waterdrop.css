@@ -17,7 +17,7 @@
   flex-direction: column;
   justify-content: flex-end;
   width: 8rem;
-  border: 0.5rem solid var(--bg-2);
+  border: 0.5rem solid transparent;
   box-shadow: 0 0 0 0.25rem var(--fg-1);
   border-radius: 100vmax;
   overflow: hidden;
