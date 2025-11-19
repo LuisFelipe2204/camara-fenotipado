@@ -20,7 +20,8 @@ from flask import Flask, Response, jsonify, request
 
 from modules.ax12 import Ax12
 from modules.survey3 import Survey3
-from utils.CameraThread import CameraThread
+from utils.camera_thread import CameraThread
+from utils import utils
 
 load_dotenv()
 
@@ -169,15 +170,18 @@ def generate_frames(camera_thread: CameraThread):
 
 def read_sensor_data():
     """Read data from the sensors and update the global data dictionary."""
+    has_dht = True
     while not stop_event.is_set():
-        try:
-            dht.measure()
-        except RuntimeError as e:
-            logging.error("Failed while reading DHT. %s", e)
+        if has_dht:
+            try:
+                dht.measure()
+            except RuntimeError as e:
+                has_dht = False
+                logging.error("Sensor DHT11 not recognized. %s", e)
 
         with data_lock:
-            data["temp"] = dht.temperature
-            data["hum"] = dht.humidity
+            data["temp"] = dht.temperature if has_dht else -1
+            data["hum"] = dht.humidity if has_dht else -1
             data["white_lux"] = round(bh.lux, 1) if bh is not None else -1
             data["ir_lux"] = round(tsl.infrared, 1) if tsl is not None else -1
             data["uv_lux"] = round(ltr.uvi, 1) if ltr is not None else -1
@@ -193,57 +197,8 @@ def save_rgb_image(prefix: str, frame: MatLike, timestamp: float, step=0):
         timestamp: The timestamp to use for the filename.
         step: The step number for the filename. Defaults to 0.
     """
-    filename = f"{prefix}-{time.strftime('%Y%m%d-%H%M%S', time.localtime(timestamp))}-{step}.png"
+    filename = utils.generate_photo_name(prefix, timestamp, step)
     cv2.imwrite(os.path.join(CAM_DEST, filename), frame)  # pylint: disable=no-member
-
-
-def extract_photo_name(name: str):
-    """Extract data from the image names created in save_rgb_image function.
-    Args:
-        name: The file name
-    """
-    label, date, hour, end = name.split("-")
-    step, extension = end.split(".")
-    return (label, f"{date}-{hour}", step, extension)
-
-
-def insert_array_padded(array: list, index: int, item) -> list:
-    """Inserts an item in a list in any position, padding with None if out of range.
-    Args:
-        array: The list to modify
-        index: The position to insert the item on
-        item: The item to put on the list
-    Returns
-        The modified list
-    """
-    if index >= len(array):
-        array.extend([None] * (index + 1 - len(array)))
-    array[index] = item
-    return array
-
-
-def degree_to_byte(degree: int) -> int:
-    """Convert a degree value to a byte value for the servo motor.
-    Args:
-        degree: The degree value to convert.
-    Returns:
-        The converted byte value, clamped between 0 and 1023.
-    """
-    return min(max(degree * 1023 // 300, 0), 1023)
-
-
-def debounce_button(digital_pin: digitalio.DigitalInOut, old_state: bool) -> bool:
-    """Debounce a button press to avoid false triggers.
-    Args:
-        pin: The pin connected to the button.
-        old_state: The previous state of the button.
-    Returns:
-        The new state of the button if it has changed, otherwise returns the old state.
-    """
-    if digital_pin.value != old_state:
-        time.sleep(0.05)
-        return digital_pin.value
-    return old_state
 
 
 def update_progress(angle_index: int, prev_camera: int):
@@ -253,10 +208,11 @@ def update_progress(angle_index: int, prev_camera: int):
         prev_camera: The number of the camera that took the last photo
     """
     with data_lock:
-        data["progress"] = round((
-            (angle_index / MOTOR_STEPS) + (prev_camera / TOTAL_CAMERAS) / MOTOR_STEPS
-        ) * 100)
-        logging.info("Changed progress to %d%", data["progress"])
+        data["progress"] = round(
+            ((angle_index / MOTOR_STEPS) + (prev_camera / TOTAL_CAMERAS) / MOTOR_STEPS)
+            * 100
+        )
+        logging.info("Changed progress to %d%%", data["progress"])
 
 
 def toggle_lights(state_white: bool, state_ir: bool, state_uv: bool):
@@ -363,12 +319,12 @@ def serve_photos():
         logging.error("Tried serving photos via API but there's none stored.")
         return jsonify({"photo_counts": limits, "photos": photos})
 
-    latest_timestamp = extract_photo_name(files[0])[1]
+    latest_timestamp = utils.extract_photo_name(files[0])[1]
     logging.debug(
         "Latest timestamp found is [%s]. Found %d files.", latest_timestamp, len(files)
     )
     for file in files:
-        label, timestamp, step, ext = extract_photo_name(file)
+        label, timestamp, step, ext = utils.extract_photo_name(file)
         if timestamp != latest_timestamp:
             continue
 
@@ -379,7 +335,7 @@ def serve_photos():
         full_path = os.path.join(photos_dir, file)
         with open(full_path, "rb") as image_file:
             content = base64.b64encode(image_file.read()).decode("utf-8")
-        insert_array_padded(
+        utils.insert_array_padded(
             photos[label],
             int(step),
             {
@@ -398,9 +354,9 @@ def move_motor_next():
     """
     angle = ANGLES[states["angle"]]
     logging.info(
-        "Began moving towards %d° (%d in bytes).", angle, degree_to_byte(angle)
+        "Began moving towards %d° (%d in bytes).", angle, utils.degree_to_byte(angle)
     )
-    dxl.set_goal_position(degree_to_byte(angle))
+    dxl.set_goal_position(utils.degree_to_byte(angle))
     with data_lock:
         data["angle"] = angle
 
@@ -412,8 +368,8 @@ def move_motor_next():
 
 def main():
     """Main function to handle the chamber operations."""
-    new_start = debounce_button(START_BTN, states["start"])
-    new_stop = debounce_button(STOP_BTN, states["stop"])
+    new_start = utils.debounce_button(START_BTN, states["start"])
+    new_stop = utils.debounce_button(STOP_BTN, states["stop"])
 
     if data["running"]:
         data["running"] = not (new_stop and not states["stop"])

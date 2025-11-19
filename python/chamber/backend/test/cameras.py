@@ -26,13 +26,17 @@ re_camera = Survey3(RE_CAMERA_PIN, "RE", SOURCE_RE, DESTINATION)
 rgn_camera = Survey3(RGN_CAMERA_PIN, "RGN", SOURCE_RGN, DESTINATION)
 process_start = 0
 
+
 # Functions
 def save_rgb_image(prefix, frame, timestamp: float, step=0):
     filename = f"{prefix}-{time.strftime('%Y%m%d-%H%M%S', time.localtime(timestamp))}-step{step}.png"
     imwrite(f"{DESTINATION}/{filename}", frame)
 
+
 def main():
-    cmd = int(input("[1] Trigger\n[2] Mount/Dismount\n[3] Transfer\n[4] Mimick main\n>> "))
+    cmd = int(
+        input("[1] Trigger\n[2] Mount/Dismount\n[3] Transfer\n[4] Mimick main\n>> ")
+    )
     # Flow: Trigger => Dismount => Transfer => Clear
     # Takes the pictures, transfers one and deletes the rest
 
@@ -44,11 +48,11 @@ def main():
             print("Triggering...")
             re_camera.read()
             rgn_camera.read()
-            #success, frame = rgb_camera.read()
-            #successtop, frametop = rgb_cameratop.read()
-            #if success:
+            # success, frame = rgb_camera.read()
+            # successtop, frametop = rgb_cameratop.read()
+            # if success:
             #    save_rgb_image("RGB", frame, time.time())
-            #if successtop:
+            # if successtop:
             #    save_rgb_image("RGBT", frametop, time.time())
         case 2:
             print("Mount/Dismount")
@@ -76,6 +80,7 @@ def main():
             print("Done.")
         case _:
             print("Invalid.")
+
 
 if __name__ == "__main__":
     try:

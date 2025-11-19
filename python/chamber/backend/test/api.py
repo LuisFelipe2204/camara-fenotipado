@@ -58,7 +58,9 @@ class CameraThread(threading.Thread):
             status, frame = self.capture.read()
             if not status or frame is None or frame.size == 0:
                 if not warned:
-                    print(f"[WARN] Camera {self.device_index} read failed (ret={status})")
+                    print(
+                        f"[WARN] Camera {self.device_index} read failed (ret={status})"
+                    )
                     warned = True
                 time.sleep(0.1)
                 continue
@@ -105,11 +107,13 @@ def serve_dashboard():
     with data_lock:
         return jsonify(data)
 
+
 def set_with_padding(arr, index, item):
     if index >= len(arr):
         arr.extend([None] * (index + 1 - len(arr)))
     arr[index] = item
     return arr
+
 
 @app.route("/dashboard/photos")
 def serve_photos():
@@ -127,8 +131,8 @@ def serve_photos():
         "RGN": [],
         "RE": [],
     }
-    #photos: dict[str, list[Optional[Dict[str, Any]]]] = {key: [None] * limits[key] for key in limits}
-    #print(photos)
+    # photos: dict[str, list[Optional[Dict[str, Any]]]] = {key: [None] * limits[key] for key in limits}
+    # print(photos)
     # Get all image files and sort them newest to oldest
     files = [file for file in os.listdir(PHOTOS_DIR) if file.lower().endswith(FORMATS)]
     files.sort(
@@ -137,10 +141,12 @@ def serve_photos():
 
     if len(files) == 0:
         print("Tried serving photos but there's none")
-        return jsonify({ "photo_counts": limits, "photos": photos })
+        return jsonify({"photo_counts": limits, "photos": photos})
 
     latest_timestamp = extract_photo_name(files[0])[1]
-    print(f"Latest timestamp found is {latest_timestamp} and found {len(files)} files in total")
+    print(
+        f"Latest timestamp found is {latest_timestamp} and found {len(files)} files in total"
+    )
     for file in files:
         label, timestamp, step, ext = extract_photo_name(file)
         print(f"Comparing timestamps {timestamp} with latest {latest_timestamp}")
@@ -156,16 +162,20 @@ def serve_photos():
         with open(full_path, "rb") as image_file:
             content = base64.b64encode(image_file.read()).decode("utf-8")
         print(f"Adding file: {file}")
-        set_with_padding(photos[label], int(step), {
-            "filename": file,
-            "content": content,
-            "content_type": "image/jpeg" if ext == "jpg" else "image/png",
-        })
-        #photos[label][int(step)] = {
+        set_with_padding(
+            photos[label],
+            int(step),
+            {
+                "filename": file,
+                "content": content,
+                "content_type": "image/jpeg" if ext == "jpg" else "image/png",
+            },
+        )
+        # photos[label][int(step)] = {
         #    "filename": file,
         #    "content": content,
         #    "content_type": "image/jpeg" if ext == "jpg" else "image/png",
-        #}
+        # }
 
     return jsonify({"photo_counts": limits, "photos": photos})
 
@@ -207,12 +217,13 @@ def extract_photo_name(name: str):
     step, extension = end.split(".")
     return (label, f"{date}-{time}", step, extension)
 
-#{
- #       "label": label,
-  #      "timestamp": f"{date}-{time}",
-   #     "step": int(step),
-    #    "ext": extension,
-    #}
+
+# {
+#       "label": label,
+#      "timestamp": f"{date}-{time}",
+#     "step": int(step),
+#    "ext": extension,
+# }
 
 
 process_start = 0
@@ -291,4 +302,3 @@ if __name__ == "__main__":
         cam_thread.release()
         cam_top_thread.release()
         os._exit(0)
-

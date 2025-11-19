@@ -9,6 +9,7 @@ i2c = busio.I2C(board.SCL, board.SDA)
 # Variables
 sensor = adafruit_ltr390.LTR390(i2c)
 
+
 def main():
     uv = sensor.uvi
     if uv is not None:
@@ -16,6 +17,7 @@ def main():
     else:
         print("Failed to read from LTR390 sensor!")
     time.sleep(2)
+
 
 if __name__ == "__main__":
     try:
@@ -26,4 +28,3 @@ if __name__ == "__main__":
         print("Exiting...")
     finally:
         pass
-    
