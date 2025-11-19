@@ -62,7 +62,7 @@ const loop = async () => {
     }
   }
 
-  let running = data.running === 1;
+  let running = data.running == 1;
   if (!running && oldRunning) {
     btn.classList.toggle("active", false);
     const event = new CustomEvent("progressDone");

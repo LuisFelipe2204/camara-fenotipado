@@ -1,14 +1,17 @@
-import digitalio
-from os import path, listdir, remove
 import shutil
 import time
+from os import listdir, path, remove
+
+import digitalio
+
 
 class Pulse:
     DO_NOTHING = 0.001
     TAKE_PHOTO = 0.002
     TRANSFER = 0.0015
 
-class Survey3():
+
+class Survey3:
     def __init__(self, pin: digitalio.DigitalInOut, id: str, origin: str, dest: str):
         self.pin = pin
         self.origin = origin
@@ -51,7 +54,9 @@ class Survey3():
             print(f"No files found in {self.origin}.")
             return False
 
-        shutil.move(latest, f'{self.dest}/{self.id}-{time.strftime("%Y%m%d-%H%M%S")}.JPG')
+        shutil.move(
+            latest, f'{self.dest}/{self.id}-{time.strftime("%Y%m%d-%H%M%S")}.JPG'
+        )
         return True
 
     def transfer_n(self, n: int, steps: list[int], timestamp: float = 0):
@@ -62,17 +67,28 @@ class Survey3():
             print(f"Error: The directory {self.origin} does not exist.")
             return False
 
-        files = [f for f in listdir(self.origin) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
-        files = sorted(files, key=lambda x: path.getctime(path.join(self.origin, x)), reverse=True)
+        files = [
+            f
+            for f in listdir(self.origin)
+            if f.lower().endswith((".jpg", ".jpeg", ".png"))
+        ]
+        files = sorted(
+            files, key=lambda x: path.getctime(path.join(self.origin, x)), reverse=True
+        )
 
         if len(files) < n:
-            print(f"Not enough files to transfer. Found {len(files)}, but expected {n}.")
+            print(
+                f"Not enough files to transfer. Found {len(files)}, but expected {n}."
+            )
             return False
 
         for i, file in enumerate(files[:n]):
             time_str = time.strftime("%Y%m%d-%H%M%S", time.localtime(timestamp))
             step_inverse = steps[i]
-            shutil.move(path.join(self.origin, file), f'{self.dest}/{self.id}-{time_str}-step{step_inverse}.JPG')
+            shutil.move(
+                path.join(self.origin, file),
+                f"{self.dest}/{self.id}-{time_str}-step{step_inverse}.JPG",
+            )
         return True
 
     def clear_sd(self):
@@ -82,11 +98,11 @@ class Survey3():
 
         for file in listdir(self.origin):
             name = path.join(self.origin, file)
-            if not path.isfile(name): return False
-        
+            if not path.isfile(name):
+                continue
+
             try:
                 remove(name)
             except Exception as e:
                 print(f"Failed to remove {name}: {e}")
-                return False
         return True

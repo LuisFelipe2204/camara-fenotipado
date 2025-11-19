@@ -47,4 +47,3 @@ class CameraThread(threading.Thread):
 
     def release(self):
         self.capture.release()
-
