@@ -114,6 +114,7 @@ states = {
     "rotated": True,
     "transferred": True,
     "angle": 0,
+    "session": 0
 }
 data = {
     "temp": 0,
@@ -198,7 +199,8 @@ def save_rgb_image(prefix: str, frame: MatLike, timestamp: float, step=0):
         step: The step number for the filename. Defaults to 0.
     """
     filename = utils.generate_photo_name(prefix, timestamp, step)
-    cv2.imwrite(os.path.join(CAM_DEST, filename), frame)  # pylint: disable=no-member
+    dirpath = utils.get_session_dirpath(CAM_DEST, states["session"])
+    cv2.imwrite(os.path.join(dirpath, filename), frame)  # pylint: disable=no-member
 
 
 def update_progress(angle_index: int, prev_camera: int):
@@ -234,7 +236,7 @@ def transfer_survey_cameras(camera: Survey3):
         camera: The camera object from Survey3 module
     """
     camera.toggle_mount()
-    camera.transfer_n(states["angle"], ANGLES, times["process_start"])
+    camera.transfer_n(states["angle"], states["session"], times["process_start"])
     camera.clear_sd()
     camera.toggle_mount()
 
@@ -294,7 +296,7 @@ def serve_photos():
     Returns:
         dict: All the photo contents stored by all cameras
     """
-    photos_dir = CAM_DEST
+    photos_dir = utils.get_session_dirpath(CAM_DEST, states["session"])
     formats = (".jpg", ".jpeg", ".png")
     limits = {
         "RGBT": photos_taken["top"],
@@ -346,6 +348,39 @@ def serve_photos():
         )
 
     return jsonify({"photo_counts": limits, "photos": photos})
+
+
+@app.route("/session/download")
+def serve_all_sessions():
+    """Zip all of the CAM_DEST directory and return it"""
+    zipped = utils.zip_dir(CAM_DEST)
+    return Response(
+        zipped,
+        mimetype="application/zip",
+        headers={
+            "Content-Disposition": f"attachment; filename=all_sessions.zip"
+        }
+    )
+
+
+@app.route("/session/download/<int:session>")
+def serve_single_session(session: int):
+    """Zip a specific session and return it
+    Args:
+        session: The number of the session to download
+    """
+    session_path = utils.get_session_dirpath(CAM_DEST, session)
+    if not os.path.exists(session_path):
+        return Response(None, 404)
+    
+    zipped = utils.zip_dir(session_path)
+    return Response(
+        zipped,
+        mimetype="application/zip",
+        headers={
+            "Content-Disposition": f"attachment; filename=session-{session}.zip"
+        }
+    )
 
 
 def move_motor_next():
@@ -431,6 +466,7 @@ def main():
             t.join()
 
         states["angle"] = 0
+        move_motor_next()
         states["transferred"] = True
         data["running"] = False
 
@@ -440,6 +476,8 @@ def main():
 
 
 if __name__ == "__main__":
+    states["session"] = utils.get_next_numeric_subdir(CAM_DEST)
+
     api_thread = threading.Thread(target=start_api, daemon=True)
     sensor_thread = threading.Thread(target=read_sensor_data, daemon=True)
     try:
