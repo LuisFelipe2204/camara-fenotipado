@@ -18,10 +18,11 @@
   padding-bottom: 0;
   border-bottom: 0;
   border-radius: 100vmax 100vmax 0 0;
+  transform: translateY(0.5rem);
 }
 .thermometer .bar {
   width: calc(var(--size) - 1rem);
-  height: var(--value);
+  height: calc(var(--value) - 0.5rem);
   background-color: var(--clr);
   border: 0.5rem solid transparent;
   border-bottom: 0;
@@ -48,7 +49,6 @@
 }
 .thermometer .ball-border::before {
   position: absolute;
-  content: "";
   top: -0.25rem;
   width: calc(var(--size) + 0.4rem);
   height: 1rem;
