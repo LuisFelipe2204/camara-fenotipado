@@ -56,7 +56,7 @@ for pin in [START_BTN, STOP_BTN]:
 
 # Constants
 CAM_RGB_INDEX = 0
-CAM_RGBT_INDEX = 1
+CAM_RGBT_INDEX = 2
 CAM_SRC_RGN = "/media/sise/0000-0001/DCIM/Photo"
 CAM_SRC_RE = "/media/sise/0000-00011/DCIM/Photo"
 CAM_DEST = "/home/sise/Desktop/pictures"
@@ -253,9 +253,10 @@ def update_progress(angle_index: int, prev_camera: int):
         prev_camera: The number of the camera that took the last photo
     """
     with data_lock:
-        data["progress"] = (
-            (angle_index / MOTOR_STEPS) + (prev_camera / TOTAL_CAMERAS)
-        ) * 100
+        data["progress"] = round((
+            (angle_index / MOTOR_STEPS) + (prev_camera / TOTAL_CAMERAS) / MOTOR_STEPS
+        ) * 100)
+        logging.info("Changed progress to %d%", data["progress"])
 
 
 def toggle_lights(state_white: bool, state_ir: bool, state_uv: bool):
