@@ -4,7 +4,7 @@ from os import listdir, path, remove
 import logging
 
 import digitalio
-from utils.utils import generate_photo_name, get_session_dirpath, safe_copy
+from utils import generate_photo_name, get_session_dirpath, safe_copy
 
 logging.basicConfig(
     format=(

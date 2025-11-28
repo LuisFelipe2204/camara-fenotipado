@@ -1,0 +1,11 @@
+live-camera {
+  max-height: 100%;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  box-sizing: border-box;
+}
+
+live-camera img {
+    max-height: 100%;
+}

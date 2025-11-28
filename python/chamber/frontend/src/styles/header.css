@@ -6,12 +6,12 @@ header {
   background-color: black;
   border-bottom: 0.25rem solid white;
 }
-header .logo {
+header .page-logo {
   padding: 0 clamp(0rem, 5vw, 7.5rem);
   height: 2rem;
   filter: brightness(0) invert(1);
 }
-header .title {
+header .page-title {
   margin: 0;
   flex-grow: 1;
   color: white;
@@ -19,7 +19,7 @@ header .title {
 }
 
 @media screen and (width <= 40rem) {
-  header .title {
+  header .page-title {
     display: none;
   }
 }

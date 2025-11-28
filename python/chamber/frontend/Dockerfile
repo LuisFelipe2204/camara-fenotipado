@@ -1,9 +1,21 @@
-FROM nginx:alpine-slim
+FROM node:20-alpine AS build 
 
-COPY config/nginx.conf /etc/nginx/nginx.conf
+WORKDIR /dashboard 
 
-COPY src/ /usr/share/nginx/html/
+COPY ./package*.json . 
+
+RUN npm i 
+
+COPY . . 
+
+RUN npm run build 
+
+
+
+FROM nginx:1.29-alpine-slim 
+
+COPY ./config /etc/nginx 
+
+COPY --from=build /dashboard/dist /usr/share/nginx/html 
 
 EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]

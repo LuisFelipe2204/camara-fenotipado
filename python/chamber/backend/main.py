@@ -22,8 +22,8 @@ from flask import Flask, Response, jsonify, request, stream_with_context
 
 from modules.ax12 import Ax12
 from modules.survey3 import Survey3
-from utils.camera_thread import CameraThread
-from utils import utils
+from modules.camera import CameraThread
+import utils
 
 load_dotenv()
 
@@ -62,7 +62,7 @@ CAM_RGB_INDEX = 0
 CAM_RGBT_INDEX = 2
 CAM_SRC_RGN = "/media/sise/0000-0001/DCIM/Photo"
 CAM_SRC_RE = "/media/sise/0000-00011/DCIM/Photo"
-CAM_DEST = "/home/sise/Desktop/pictures"
+CAM_DEST = "/home/sise/Desktop/Fenotipado"
 DXL_DEVICENAME = "/dev/ttyAMA0"
 DXL_BAUDRATE = 1_000_000
 DXL_ID = 1

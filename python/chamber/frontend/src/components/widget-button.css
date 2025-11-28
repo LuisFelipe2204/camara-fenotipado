@@ -1,0 +1,23 @@
+.widget:has(widget-button) {
+  justify-content: center;
+}
+
+widget-button {
+  cursor: pointer;
+  display: flex;
+  aspect-ratio: 1;
+  border: 2px solid black;
+  border-radius: 100%;
+}
+
+widget-button button {
+  cursor: pointer;
+  margin: 1rem;
+  border-radius: 100%;
+  border: none;
+  background-color: var(--clr);
+}
+
+widget-button:hover button {
+  filter: brightness(0.8);
+}
