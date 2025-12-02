@@ -3,7 +3,7 @@ import os
 import random
 import threading
 import time
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 import cv2
 from dotenv import load_dotenv

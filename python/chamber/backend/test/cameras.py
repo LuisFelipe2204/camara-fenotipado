@@ -1,12 +1,13 @@
-import digitalio
+import os
+import time
+
 import board
 import cv2
+import digitalio
 from cv2 import VideoCapture, imwrite
 from cv2.typing import MatLike
-from modules.survey3 import Survey3
-import time
-import os
 
+from modules.survey3 import Survey3
 from utils import utils
 
 # Pin I/O

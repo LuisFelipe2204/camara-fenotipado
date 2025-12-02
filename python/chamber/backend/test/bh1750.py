@@ -1,7 +1,8 @@
+import time
+
 import adafruit_bh1750
 import board
 import busio
-import time
 
 # Pin I/O
 i2c = busio.I2C(board.SCL, board.SDA)

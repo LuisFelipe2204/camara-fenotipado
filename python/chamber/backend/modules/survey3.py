@@ -1,9 +1,10 @@
+import logging
 import shutil
 import time
 from os import listdir, path, remove
-import logging
 
 import digitalio
+
 from utils import generate_photo_name, get_session_dirpath, safe_copy
 
 logging.basicConfig(
@@ -17,6 +18,7 @@ logging.basicConfig(
     level=logging.INFO,
     handlers=[logging.StreamHandler()],
 )
+
 
 class Pulse:
     DO_NOTHING = 0.001
@@ -34,7 +36,9 @@ class Survey3:
         self.pin.value = False
 
         if path.isdir(self.origin):
-            logging.warning("Found existing path for camera %s, mounting back the SD.", self.id)
+            logging.warning(
+                "Found existing path for camera %s, mounting back the SD.", self.id
+            )
             self.toggle_mount()
 
     def pulse(self, pulse: float):
@@ -71,7 +75,6 @@ class Survey3:
             logging.error("No files found in %s.", self.origin)
             return False
 
-
         safe_copy(
             latest, path.join(self.dest, generate_photo_name(self.id, time.time(), 0))
         )
@@ -96,12 +99,20 @@ class Survey3:
         )
 
         if len(files) < n:
-            logging.error("Not enough files found in %s. Expected %d, found %d", self.origin, n, len(files))
+            logging.error(
+                "Not enough files found in %s. Expected %d, found %d",
+                self.origin,
+                n,
+                len(files),
+            )
             return False
 
         for i, file in enumerate(files[:n]):
             src = path.join(self.origin, file)
-            dst = path.join(get_session_dirpath(self.dest, session), generate_photo_name(self.id, timestamp, i))
+            dst = path.join(
+                get_session_dirpath(self.dest, session),
+                generate_photo_name(self.id, timestamp, i),
+            )
 
             safe_copy(src, dst)
             remove(src)

@@ -1,6 +1,7 @@
+import time
+
 import board
 import digitalio
-import time
 
 # Pin I/O
 SWITCH_PIN = board.D5

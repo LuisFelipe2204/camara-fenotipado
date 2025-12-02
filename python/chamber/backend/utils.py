@@ -1,13 +1,13 @@
 """Helper functions used on the main module"""
 
-import time
-import os
-import zipfile
-
 import logging
+import os
 import shutil
-import digitalio
+import time
+import zipfile
 from io import BytesIO
+
+import digitalio
 
 logging.basicConfig(
     format=(
@@ -20,6 +20,7 @@ logging.basicConfig(
     level=logging.INFO,
     handlers=[logging.StreamHandler()],
 )
+
 
 def generate_photo_name(prefix: str, timestamp: float, step: int) -> str:
     """Return a string representation of the photo data with camera label, time and step
@@ -86,9 +87,9 @@ def debounce_button(digital_pin: digitalio.DigitalInOut, old_state: bool) -> boo
 def get_next_numeric_subdir(base_dir: str) -> int:
     """Reads the destination directory, parses all the stored sessions and gets the largest +1
     Args:
-        base_dir: The base directory where all the numeric directories are 
+        base_dir: The base directory where all the numeric directories are
     Returns:
-        int: The number of the next directory 
+        int: The number of the next directory
     """
     max_num = -1
     for name in os.listdir(base_dir):
@@ -119,7 +120,7 @@ def get_session_dirpath(base: str, session: int) -> str:
 
 def zip_dir(dirpath: str) -> bytes:
     mem = BytesIO()
-    
+
     with zipfile.ZipFile(mem, mode="w", compression=zipfile.ZIP_DEFLATED) as zip:
         for root, _, files in os.walk(dirpath):
             for file in files:
@@ -131,7 +132,7 @@ def zip_dir(dirpath: str) -> bytes:
     return mem.getvalue()
 
 
-def safe_copy(src: str, dest: str, chunk: int=64*1024) -> bool:
+def safe_copy(src: str, dest: str, chunk: int = 64 * 1024) -> bool:
     # Retry 3 times
     for _ in range(3):
         try:
@@ -142,10 +143,10 @@ def safe_copy(src: str, dest: str, chunk: int=64*1024) -> bool:
             os.remove(dest)
 
         try:
-            with open(src, 'rb') as file_src, open(dest, 'wb') as file_dest:
+            with open(src, "rb") as file_src, open(dest, "wb") as file_dest:
                 while True:
                     buffer = file_src.read(chunk)
-                    if not buffer: 
+                    if not buffer:
                         break
                     file_dest.write(buffer)
             return True

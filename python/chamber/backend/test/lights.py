@@ -1,6 +1,7 @@
-import digitalio
-import board
 import time
+
+import board
+import digitalio
 
 # Pin I/O
 LED_W = digitalio.DigitalInOut(board.D17)

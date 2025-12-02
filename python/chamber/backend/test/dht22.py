@@ -1,6 +1,7 @@
+import time
+
 import adafruit_dht
 import board
-import time
 
 # Pin I/O
 DHT_PIN = board.D26

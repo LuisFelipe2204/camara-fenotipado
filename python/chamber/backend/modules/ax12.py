@@ -5,8 +5,9 @@
 From https://github.com/aakieu/ax12_control
 """
 
-from dynamixel_sdk import *  # type: ignore # Uses Dynamixel SDK library
 import logging
+
+from dynamixel_sdk import *  # type: ignore # Uses Dynamixel SDK library
 
 logging.basicConfig(
     format=(
@@ -312,13 +313,17 @@ class Ax12:
         """Enable torque for motor."""
         self.set_register1(ADDR_AX_TORQUE_ENABLE, 1)
         if self.DEBUG:
-            logging.info("Torque has been successfully enabled for dxl ID: %d" % self.id)
+            logging.info(
+                "Torque has been successfully enabled for dxl ID: %d" % self.id
+            )
 
     def disable_torque(self):
         """Disable torque."""
         self.set_register1(ADDR_AX_TORQUE_ENABLE, 0)
         if self.DEBUG:
-            logging.info("Torque has been successfully disabled for dxl ID: %d" % self.id)
+            logging.info(
+                "Torque has been successfully disabled for dxl ID: %d" % self.id
+            )
 
     @classmethod
     def open_port(cls):

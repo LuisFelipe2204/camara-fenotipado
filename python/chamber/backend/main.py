@@ -3,9 +3,9 @@
 import base64
 import logging
 import os
+import shutil
 import threading
 import time
-import shutil
 
 import adafruit_bh1750
 import adafruit_dht
@@ -20,10 +20,10 @@ from cv2.typing import MatLike
 from dotenv import load_dotenv
 from flask import Flask, Response, jsonify, request, stream_with_context
 
-from modules.ax12 import Ax12
-from modules.survey3 import Survey3
-from modules.camera import CameraThread
 import utils
+from modules.ax12 import Ax12
+from modules.camera import CameraThread
+from modules.survey3 import Survey3
 
 load_dotenv()
 
@@ -116,7 +116,7 @@ states = {
     "rotated": True,
     "transferred": True,
     "angle": 0,
-    "session": 0
+    "session": 0,
 }
 data = {
     "temp": 0,
@@ -154,9 +154,7 @@ def generate_frames(camera_thread: CameraThread):
     """
     blank = (
         b"--frame\r\n"
-        b"Content-Type: image/jpeg\r\n\r\n" +
-        create_blank_jpeg() +
-        b"\r\n"
+        b"Content-Type: image/jpeg\r\n\r\n" + create_blank_jpeg() + b"\r\n"
     )
     while not stop_event.is_set():
         frame = camera_thread.get_frame()
@@ -375,9 +373,7 @@ def serve_all_sessions():
     return Response(
         zipped,
         mimetype="application/zip",
-        headers={
-            "Content-Disposition": f"attachment; filename=all_sessions.zip"
-        }
+        headers={"Content-Disposition": f"attachment; filename=all_sessions.zip"},
     )
 
 
@@ -390,14 +386,12 @@ def serve_single_session(session: int):
     session_path = utils.get_session_dirpath(CAM_DEST, session)
     if not os.path.exists(session_path):
         return Response(None, 404)
-    
+
     zipped = utils.zip_dir(session_path)
     return Response(
         zipped,
         mimetype="application/zip",
-        headers={
-            "Content-Disposition": f"attachment; filename=session-{session}.zip"
-        }
+        headers={"Content-Disposition": f"attachment; filename=session-{session}.zip"},
     )
 
 
@@ -408,8 +402,8 @@ def delete_all_sessions():
         shutil.rmtree(CAM_DEST)
         os.mkdir(CAM_DEST)
     except Exception as e:
-        return jsonify({ "ok": False, "reason": str(e) })
-    return jsonify({ "ok": True, "reason": "" })
+        return jsonify({"ok": False, "reason": str(e)})
+    return jsonify({"ok": True, "reason": ""})
 
 
 def move_motor_next():
@@ -494,7 +488,9 @@ def main():
 
         logging.info("Began transferring pictures")
         re_camera.transfer_n(states["angle"], states["session"], times["process_start"])
-        rgn_camera.transfer_n(states["angle"], states["session"], times["process_start"])
+        rgn_camera.transfer_n(
+            states["angle"], states["session"], times["process_start"]
+        )
         re_camera.clear_sd()
         rgn_camera.clear_sd()
 

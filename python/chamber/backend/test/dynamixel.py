@@ -1,5 +1,6 @@
-from modules.ax12 import Ax12
 import time
+
+from modules.ax12 import Ax12
 
 # Class configuration
 Ax12.DEVICENAME = "/dev/ttyAMA0"  # e.g 'COM3' for Windows or '/dev/ttyUSB0' for Linux

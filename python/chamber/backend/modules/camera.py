@@ -1,8 +1,8 @@
 """Handler for reading camera data on separate threads"""
 
+import logging
 import threading
 import time
-import logging
 
 import cv2
 
@@ -22,12 +22,12 @@ class CameraThread(threading.Thread):
         self.height = height
 
         self.capture = cv2.VideoCapture(device_index)  # pylint: disable=no-member
-        self.capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+        self.capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
         self.capture.set(
-            cv2.CAP_PROP_FRAME_WIDTH, self.width # pylint: disable=no-member
+            cv2.CAP_PROP_FRAME_WIDTH, self.width  # pylint: disable=no-member
         )
         self.capture.set(
-            cv2.CAP_PROP_FRAME_HEIGHT, self.height # pylint: disable=no-member
+            cv2.CAP_PROP_FRAME_HEIGHT, self.height  # pylint: disable=no-member
         )
         self.capture.set(cv2.CAP_PROP_FPS, self.fps)  # pylint: disable=no-member
 
