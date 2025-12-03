@@ -90,7 +90,10 @@ dxl = Ax12(DXL_ID)
 dxl.set_moving_speed(DXL_SPEED)
 dxl.set_goal_position(0)
 dht = adafruit_dht.DHT22(DHT_PIN, use_pulseio=False)
-display = sh1106(lumaI2C(address=0x3C))
+try:
+    display = sh1106(lumaI2C(address=0x3C))
+except:
+    display = None
 display_font = ImageFont.load_default()
 
 try:
@@ -212,6 +215,10 @@ def read_sensor_data():
 def update_display():
     """Update the frame in the OLED display"""
     while not stop_event.is_set():
+        if display is None:
+            time.sleep(DISPLAY_UPDATE_TIME)
+            continue
+
         field_mode = bh is None and tsl is None and ltr is None
         image = Image.new("1", (display.width, display.height))
         draw = ImageDraw.Draw(image)
