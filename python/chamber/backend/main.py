@@ -220,9 +220,9 @@ def update_display():
         with data_lock:
             content = [
                 f"Modo {'CAMPO' if field_mode else 'LAB'}",
-                f"Giro {'IZQ' if states['direction'] else 'DER'}",
+                f"Giro {'IZQUIERDA' if states['direction'] else 'DERECHA'}",
                 f"Estado {'ON' if data['running'] else 'OFF'}",
-                f"Progreso {data['progress']}%"
+                f"Progreso {data['progress']}%",
             ]
         for i in range(len(content)):
             draw.text((0, line * i), content[i], font=display_font, fill=255)
@@ -254,16 +254,21 @@ def save_rgb_image(prefix: str, frame: MatLike, timestamp: float, step=0):
     cv2.imwrite(os.path.join(dirpath, filename), frame)  # pylint: disable=no-member
 
 
-def update_progress(angle_index: int, prev_camera: int):
+def update_progress(angle_index: int, prev_camera: int, completed=False):
     """Returns the current progress made based on number of steps and cameras
     Args:
         angle_index: The index of the current angle of the motor
         prev_camera: The number of the camera that took the last photo
     """
+    if completed:
+        data["progress"] = 100
+        logging.info("Forced progress to 100% after marked completed")
+        return
+    step = angle_index if not states["direction"] else MOTOR_STEPS - angle_index - 1
     with data_lock:
         data["progress"] = round(
-            ((angle_index / MOTOR_STEPS) + (prev_camera / TOTAL_CAMERAS) / MOTOR_STEPS)
-            * 100
+            ((step / MOTOR_STEPS) + (prev_camera / TOTAL_CAMERAS) / MOTOR_STEPS)
+            * 99
         )
         logging.info("Changed progress to %d%%", data["progress"])
 
@@ -440,6 +445,7 @@ def delete_all_sessions():
 def run_pre_session():
     states["session"] = utils.get_next_numeric_subdir(CAM_DEST)
     states["direction"] = utils.debounce_button(DIR_SWITCH, states["direction"])
+    data["progress"] = 0
     if states["direction"]:
         states["angle"] = MOTOR_STEPS - 1
 
@@ -470,7 +476,6 @@ def main():
     if data["running"]:
         data["running"] = not (new_stop and not states["stop"])
     else:
-        data["progress"] = 0
         data["running"] = new_start and not states["start"]
         if data["running"]:
             run_pre_session()
@@ -517,7 +522,7 @@ def main():
                 states["angle"] += 1
             toggle_lights(False, False, False)
 
-    completed_steps = states["angle"] >= MOTOR_STEPS
+    completed_steps = states["angle"] >= MOTOR_STEPS or states["angle"] < 0
     if not states["transferred"] and (completed_steps or not data["running"]):
         logging.info("Began transferring %d images from the cameras.", states["angle"])
 
@@ -539,6 +544,7 @@ def main():
         re_camera.toggle_mount()
         rgn_camera.toggle_mount()
 
+        update_progress(states["angle"], 4, True)
         states["angle"] = 0
         states["transferred"] = True
         data["running"] = False
