@@ -93,6 +93,7 @@ dht = adafruit_dht.DHT22(DHT_PIN, use_pulseio=False)
 try:
     display = sh1106(lumaI2C(address=0x3C))
 except:
+    logging.warning("Display SH1106 not recognized in I2C bus on address 0x3C.")
     display = None
 display_font = ImageFont.load_default()
 
