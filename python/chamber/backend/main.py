@@ -19,6 +19,9 @@ import numpy as np
 from cv2.typing import MatLike
 from dotenv import load_dotenv
 from flask import Flask, Response, jsonify, request, stream_with_context
+from luma.core.interface.serial import i2c as lumaI2C
+from luma.oled.device import sh1106
+from PIL import Image, ImageDraw, ImageFont
 
 import utils
 from modules.ax12 import Ax12
@@ -49,11 +52,12 @@ UV_LIGHT = digitalio.DigitalInOut(board.D22)
 IR_LIGHT = digitalio.DigitalInOut(board.D27)
 START_BTN = digitalio.DigitalInOut(board.D5)
 STOP_BTN = digitalio.DigitalInOut(board.D6)
+DIR_SWITCH = digitalio.DigitalInOut(board.D12)
 
 # Set directions
 for pin in [RE_CAMERA, RGN_CAMERA, WHITE_LIGHT, UV_LIGHT, IR_LIGHT]:
     pin.direction = digitalio.Direction.OUTPUT
-for pin in [START_BTN, STOP_BTN]:
+for pin in [START_BTN, STOP_BTN, DIR_SWITCH]:
     pin.direction = digitalio.Direction.INPUT
     pin.pull = digitalio.Pull.UP
 
@@ -72,6 +76,7 @@ MOTOR_STEP_TIME = 0.1
 MOTOR_RESET_TIME = MOTOR_STEPS * MOTOR_STEP_TIME
 ANGLES = [round(i * (300 / (MOTOR_STEPS - 1))) for i in range(MOTOR_STEPS)]
 SENSOR_READ_TIME = 1
+DISPLAY_UPDATE_TIME = 0.2
 TOTAL_CAMERAS = 4
 API_PORT = int(os.getenv("API_PORT", "5000"))
 
@@ -85,6 +90,9 @@ dxl = Ax12(DXL_ID)
 dxl.set_moving_speed(DXL_SPEED)
 dxl.set_goal_position(0)
 dht = adafruit_dht.DHT22(DHT_PIN, use_pulseio=False)
+display = sh1106(lumaI2C(address=0x3C))
+display_font = ImageFont.load_default()
+
 try:
     tsl = adafruit_tsl2561.TSL2561(i2c)
 except ValueError:
@@ -117,6 +125,7 @@ states = {
     "transferred": True,
     "angle": 0,
     "session": 0,
+    "direction": 0,
 }
 data = {
     "temp": 0,
@@ -200,6 +209,27 @@ def read_sensor_data():
         time.sleep(SENSOR_READ_TIME)
 
 
+def update_display():
+    """Update the frame in the OLED display"""
+    while not stop_event.is_set():
+        field_mode = bh is None and tsl is None and ltr is None
+        image = Image.new("1", (display.width, display.height))
+        draw = ImageDraw.Draw(image)
+        line = display.height // 4
+
+        with data_lock:
+            content = [
+                f"Modo {'CAMPO' if field_mode else 'LAB'}",
+                f"Giro {'IZQ' if states['direction'] else 'DER'}",
+                f"Estado {'ON' if data['running'] else 'OFF'}",
+                f"Progreso {data['progress']}%"
+            ]
+        for i in range(len(content)):
+            draw.text((0, line * i), content[i], font=display_font, fill=255)
+        display.display(image)
+        time.sleep(DISPLAY_UPDATE_TIME)
+
+
 # Functions
 def create_blank_jpeg():
     # Create a 1x1 black pixel (uint8, BGR)
@@ -277,7 +307,8 @@ def update_dashboard_var(key: str):
 
     if key == "running":
         if value == 1 and not data["running"]:
-            states["session"] = utils.get_next_numeric_subdir(CAM_DEST)
+            run_pre_session()
+
     if key in data:
         with data_lock:
             data[key] = value
@@ -406,6 +437,13 @@ def delete_all_sessions():
     return jsonify({"ok": True, "reason": ""})
 
 
+def run_pre_session():
+    states["session"] = utils.get_next_numeric_subdir(CAM_DEST)
+    states["direction"] = utils.debounce_button(DIR_SWITCH, states["direction"])
+    if states["direction"]:
+        states["angle"] = MOTOR_STEPS - 1
+
+
 def move_motor_next():
     """Order the motor to move to the next angle, update roation start time
     If it's moving to the starting position block the main thread and update starting time
@@ -435,7 +473,7 @@ def main():
         data["progress"] = 0
         data["running"] = new_start and not states["start"]
         if data["running"]:
-            states["session"] = utils.get_next_numeric_subdir(CAM_DEST)
+            run_pre_session()
 
     if data["running"]:
         if states["rotated"]:
@@ -473,7 +511,10 @@ def main():
             update_progress(states["angle"], 4)
 
             states["rotated"] = True
-            states["angle"] += 1
+            if states["direction"]:
+                states["angle"] -= 1
+            else:
+                states["angle"] += 1
             toggle_lights(False, False, False)
 
     completed_steps = states["angle"] >= MOTOR_STEPS
@@ -512,9 +553,11 @@ if __name__ == "__main__":
 
     api_thread = threading.Thread(target=start_api, daemon=True)
     sensor_thread = threading.Thread(target=read_sensor_data, daemon=True)
+    display_thread = threading.Thread(target=update_display, daemon=True)
     try:
         api_thread.start()
         sensor_thread.start()
+        display_thread.start()
         rgb_camera.start()
         rgbt_camera.start()
         while True:
@@ -524,7 +567,10 @@ if __name__ == "__main__":
         logging.info("Exiting program.")
     finally:
         stop_event.set()
+        sensor_thread.join()
+        display_thread.join()
         rgb_camera.release()
+        rgbt_camera.release()
         dxl.set_torque_enable(0)
         Ax12.disconnect()
         for pin in [RE_CAMERA, RGN_CAMERA, WHITE_LIGHT, UV_LIGHT, IR_LIGHT]:
