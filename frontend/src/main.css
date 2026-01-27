@@ -1,0 +1,28 @@
+:root {
+  --bg-alpha: #ffffff90;
+  --border-alpha: #ffffffb0;
+
+  --fg-1: black;
+  --fg-3: #303030;
+}
+
+body,
+html {
+  margin: 0;
+  height: 100%;
+}
+
+#app {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.hidden {
+  display: none;
+}
+
+main {
+  flex: 1 1 0;
+}
