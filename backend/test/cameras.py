@@ -4,11 +4,15 @@ import time
 import board
 import cv2
 import digitalio
-from cv2 import VideoCapture, imwrite
+import utils
+from cv2 import VideoCapture
 from cv2.typing import MatLike
-
 from modules.survey3 import Survey3
-from utils import utils
+from prompt_toolkit.application import Application, run_in_terminal
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.layout import Layout
+from prompt_toolkit.layout.containers import Window
+from prompt_toolkit.layout.controls import FormattedTextControl
 
 # Pin I/O
 RE_CAMERA_PIN = digitalio.DigitalInOut(board.D24)
@@ -24,6 +28,7 @@ RGBTOP_CAMERA_INDEX = 2
 SOURCE_RE = "/media/sise/0000-0001/DCIM/Photo"
 SOURCE_RGN = "/media/sise/0000-00011/DCIM/Photo"
 CAM_DEST = "/home/sise/Desktop/pictures"
+SEPARATOR = "="
 
 # Variables
 rgb_camera = VideoCapture(RGB_CAMERA_INDEX)
@@ -47,66 +52,79 @@ def save_rgb_image(prefix: str, frame: MatLike, timestamp: float, step=0):
     cv2.imwrite(os.path.join(dirpath, filename), frame)  # pylint: disable=no-member
 
 
-def main():
-    cmd = int(
-        input(
-            """Commands
-- (1) Trigger
-- (2) Toggle mount
-- (3) Transfer latest
-- (4) Mimick main
-  Command >> """
-        )
-    )
-    # Flow: Trigger => Dismount => Transfer => Clear
-    # Takes the pictures, transfers one and deletes the rest
+def trigger_picture():
+    print("Triggering...")
+    re_camera.read()
+    rgn_camera.read()
+    success, frame = rgb_camera.read()
+    successtop, frametop = rgb_cameratop.read()
+    if success:
+        save_rgb_image("RGB", frame, time.time())
+    if successtop:
+        save_rgb_image("RGBT", frametop, time.time())
 
-    # Flow: (Trigger => Dismount => Transfer)xN => Clear
-    # Takes N pictures, transfers one for each burst (cameras take 10 pictures per trigger) and deletes the rest
 
-    match cmd:
-        case 1:
-            print("Triggering...")
-            re_camera.read()
-            rgn_camera.read()
-            success, frame = rgb_camera.read()
-            successtop, frametop = rgb_cameratop.read()
-            if success:
-                save_rgb_image("RGB", frame, time.time())
-            if successtop:
-                save_rgb_image("RGBT", frametop, time.time())
-        case 2:
-            print("Mount/Dismount")
-            re_camera.toggle_mount()
-            rgn_camera.toggle_mount()
-        case 3:
-            re_camera.transfer_latest()
-            rgn_camera.transfer_latest()
-        case 4:
-            print("Mimicking main...")
-            process_start = time.time() * 1
-            for i in range(10):
-                print(f"Iteration {i + 1}")
-                re_camera.read()
-                # rgn_camera.read()
-                success, frame = rgb_camera.read()
-                if success:
-                    save_rgb_image(frame, process_start, i)
-            re_camera.toggle_mount()
-            re_camera.transfer_n(10, list(range(0, 10)), process_start)
-            re_camera.toggle_mount()
-            # rgn_camera.toggle_mount()
-            # rgn_camera.transfer_n(10, list(range(0, 10)), process_start)
-            # rgn_camera.toggle_mount()
-            print("Done.")
-        case _:
-            print("Invalid.")
+def mount_dismount():
+    print("Mount/Dismount")
+    re_camera.toggle_mount()
+    rgn_camera.toggle_mount()
 
+
+def transfer_images():
+    re_camera.transfer_latest()
+    rgn_camera.transfer_latest()
+
+
+cursor = 0
+commands = [
+    {"name": "Trigger picture", "run": trigger_picture},
+    {"name": "Mount / Dismount", "run": mount_dismount},
+    {"name": "Transfer images", "run": transfer_images},
+    {"name": "Exit", "run": lambda: app.exit()},
+]
+
+
+def render():
+    lines = []
+    width = max(len(cmd["name"]) for cmd in commands) + 4
+    lines.append(("", (SEPARATOR * width) + "\n"))
+    for i, cmd in enumerate(commands):
+        marker = "[O]" if i == cursor else "[ ]"
+        lines.append(("", f"{marker} {cmd['name']}\n"))
+    return lines
+
+
+text = FormattedTextControl(render)
+window = Window(content=text)
+kb = KeyBindings()
+
+
+@kb.add("up")
+def _(_):
+    global cursor
+    cursor = max(0, cursor - 1)
+
+
+@kb.add("down")
+def _(_):
+    global cursor
+    cursor = min(len(commands) - 1, cursor + 1)
+
+
+@kb.add("enter")
+def _(_):
+    command = commands[cursor]
+    run_in_terminal(command["run"])
+
+
+app = Application(
+    layout=Layout(window),
+    key_bindings=kb,
+    full_screen=False,
+)
 
 if __name__ == "__main__":
     try:
-        while True:
-            main()
-            time.sleep(0.1)
-    except KeyboardInterrupt:
-        print("Exiting...")
+        app.run()
+    finally:
+        pass
