@@ -7,12 +7,13 @@ import adafruit_tsl2561
 import board
 import busio
 import digitalio
-from modules.ax12 import Ax12
 from prompt_toolkit.application import Application, run_in_terminal
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import Layout
 from prompt_toolkit.layout.containers import Window
 from prompt_toolkit.layout.controls import FormattedTextControl
+
+from modules.ax12 import Ax12
 
 # Pin I/O
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -105,8 +106,11 @@ cursor = 0
 commands = [
     {"name": "BH1750 | White Light", "run": read_bh1750},
     {"name": "LTR390 | IR Light", "run": read_ltr390},
-    {"name": "TSL2561 | UV Light", "run": read_tsl2561}, 
-    {"name": "White LEDs", "run": lambda: toggle_state(LED_W, "White LEDs are {value}")},
+    {"name": "TSL2561 | UV Light", "run": read_tsl2561},
+    {
+        "name": "White LEDs",
+        "run": lambda: toggle_state(LED_W, "White LEDs are {value}"),
+    },
     {"name": "IR LEDs", "run": lambda: toggle_state(LED_R, "IR LEDs are {value}")},
     {"name": "UV LEDs", "run": lambda: toggle_state(LED_U, "UV LEDs are {value}")},
     {"name": "Button", "run": lambda: print(f"Button is {BUTTON_PIN.value}")},

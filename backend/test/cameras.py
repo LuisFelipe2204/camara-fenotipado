@@ -4,15 +4,16 @@ import time
 import board
 import cv2
 import digitalio
-import utils
 from cv2 import VideoCapture
 from cv2.typing import MatLike
-from modules.survey3 import Survey3
 from prompt_toolkit.application import Application, run_in_terminal
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import Layout
 from prompt_toolkit.layout.containers import Window
 from prompt_toolkit.layout.controls import FormattedTextControl
+
+import utils
+from modules.survey3 import Survey3
 
 # Pin I/O
 RE_CAMERA_PIN = digitalio.DigitalInOut(board.D24)
