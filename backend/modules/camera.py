@@ -5,7 +5,11 @@ import threading
 import time
 
 import cv2
+from cv2.typing import MatLike
 import numpy as np
+import utils
+from backend.data import states
+import os
 
 CAMERA_WIDTH = 320
 CAMERA_HEIGHT = 240
@@ -26,8 +30,9 @@ class CameraThread(threading.Thread):
     """Main class representing a Camera accessible via cv2"""
     cameras: list["CameraThread"] = []
 
-    def __init__(self, device_index, stop_event, width, height):
+    def __init__(self, prefix: str, device_index, stop_event, width, height):
         super().__init__(daemon=True)
+        self.prefix = prefix
         self.device_index = device_index
         self.fps = CAMERA_FPS
         self.width = width
@@ -75,6 +80,18 @@ class CameraThread(threading.Thread):
     def release(self):
         """Release the physical camera"""
         self.capture.release()
+
+    def save_image(self, dest: str, frame: MatLike, timestamp: float, step=0):
+        """Save the RGB image to the specified directory with a timestamp and step number.
+        Args:
+            prefix: The label of the image to identify the camera
+            frame: The image frame to save.
+            timestamp: The timestamp to use for the filename.
+            step: The step number for the filename. Defaults to 0.
+        """
+        filename = utils.generate_photo_name(self.prefix, timestamp, step)
+        dirpath = utils.get_session_dirpath(dest, states.get(states.SESSION))
+        cv2.imwrite(os.path.join(dirpath, filename), frame)  # pylint: disable=no-member
 
     def generate_frames(self):
         """Constantly triggers the camera to get the latest frames and formats it for streaming.
