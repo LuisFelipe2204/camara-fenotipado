@@ -1,11 +1,9 @@
 """Main module of the system"""
 
-import base64
-import logging
-import os
-import shutil
 import threading
 import time
+import logging
+import config
 
 import adafruit_bh1750
 import adafruit_dht
@@ -13,34 +11,17 @@ import adafruit_ltr390
 import adafruit_tsl2561
 import board
 import busio
-import cv2
 import digitalio
-import numpy as np
-from cv2.typing import MatLike
-from dotenv import load_dotenv
-from flask import Flask, Response, jsonify, request, stream_with_context
 from luma.core.interface.serial import i2c as lumaI2C
 from luma.oled.device import sh1106
 from PIL import Image, ImageDraw, ImageFont
+import api
+from data import data, states, photos_taken
 
 import utils
 from modules.ax12 import Ax12
 from modules.camera import CameraThread
 from modules.survey3 import Survey3
-
-load_dotenv()
-
-logging.basicConfig(
-    format=(
-        "\033[90m%(asctime)s\033[0m "
-        + "[\033[36m%(levelname)s\033[0m] "
-        + "[\033[33m%(module)s::%(funcName)s\033[0m] "
-        + "%(message)s"
-    ),
-    datefmt="%Y-%m-%d %H:%M:%S",
-    level=logging.INFO,
-    handlers=[logging.StreamHandler()],
-)
 
 # Pin I/O
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -66,7 +47,7 @@ CAM_RGB_INDEX = 0
 CAM_RGBT_INDEX = 2
 CAM_SRC_RGN = "/media/sise/0000-0001/DCIM/Photo"
 CAM_SRC_RE = "/media/sise/0000-00011/DCIM/Photo"
-CAM_DEST = "/home/sise/Desktop/Fenotipado"
+CAM_DEST = config.CAM_DEST
 DXL_DEVICENAME = "/dev/ttyAMA0"
 DXL_BAUDRATE = 1_000_000
 DXL_ID = 1
@@ -78,7 +59,6 @@ ANGLES = [round(i * (300 / (MOTOR_STEPS - 1))) for i in range(MOTOR_STEPS)]
 SENSOR_READ_TIME = 1
 DISPLAY_UPDATE_TIME = 0.2
 TOTAL_CAMERAS = 4
-API_PORT = int(os.getenv("API_PORT", "5000"))
 
 # Class configuration
 Ax12.DEVICENAME = DXL_DEVICENAME
@@ -86,6 +66,7 @@ Ax12.BAUDRATE = DXL_BAUDRATE
 Ax12.connect()
 
 # Library initialization
+data.init_values(DIR_SWITCH, MOTOR_STEPS)
 dxl = Ax12(DXL_ID)
 dxl.set_moving_speed(DXL_SPEED)
 dxl.set_goal_position(0)
@@ -113,103 +94,41 @@ except ValueError:
     logging.warning("Sensor LTR390 not recognized in I2C bus.")
     ltr = None
 stop_event = threading.Event()
-rgb_camera = CameraThread(CAM_RGB_INDEX, stop_event, 800, 600)
-rgbt_camera = CameraThread(CAM_RGBT_INDEX, stop_event, 848, 480)
-preview_cameras = [rgb_camera, rgbt_camera]
+side_cam = CameraThread("RGB", CAM_RGB_INDEX, stop_event, 800, 600)
+top_cam = CameraThread("RGBT", CAM_RGBT_INDEX, stop_event, 848, 480)
 re_camera = Survey3(RE_CAMERA, "RE", CAM_SRC_RE, CAM_DEST)
 rgn_camera = Survey3(RGN_CAMERA, "RGN", CAM_SRC_RGN, CAM_DEST)
 
-app = Flask(__name__)
-
-# Variables
-states = {
-    "start": True,
-    "stop": True,
-    "rotated": True,
-    "transferred": True,
-    "angle": 0,
-    "session": 0,
-    "direction": 0,
-}
-data = {
-    "temp": 0,
-    "hum": 0,
-    "white_lux": 0,
-    "ir_lux": 0,
-    "uv_lux": 0,
-    "running": False,
-    "angle": 0,
-    "progress": 0,
-}
-photos_taken = {"side": 0, "top": 0, "ir": 0, "uv": 0}
+app = api.create(__name__)
 
 # Time variables
 times = {"rotation_start": 0.0, "sensor_read": 0.0, "process_start": 0.0}
 
 
-# Sensor thread
-data_lock = threading.Lock()
-
-
 # Thread functions
 def start_api():
     """Start the Flask API server in a separate thread."""
-    logging.getLogger("werkzeug").setLevel(logging.WARNING)
-    app.run(host="0.0.0.0", port=API_PORT, debug=False, use_reloader=False)
-
-
-def generate_frames(camera_thread: CameraThread):
-    """Constantly triggers the camera to get the latest frames and formats it for streaming.
-    Args:
-        camera_thread: The camera object configured to manage an RGB camera
-    Returns:
-        The HTTP streaming formatted frame
-    """
-    blank = (
-        b"--frame\r\n"
-        b"Content-Type: image/jpeg\r\n\r\n" + create_blank_jpeg() + b"\r\n"
-    )
-    while not stop_event.is_set():
-        frame = camera_thread.get_frame()
-        if frame is None:
-            yield blank
-            time.sleep(1.0 / camera_thread.fps)
-            continue
-
-        try:
-            success, buffer = cv2.imencode(".jpg", frame)  # pylint: disable=no-member
-            frame_bytes = buffer.tobytes()
-        except:
-            logging.error(
-                "Camera %d failed during image encoding.", camera_thread.device_index
-            )
-            yield blank
-            time.sleep(1.0 / camera_thread.fps)
-            continue
-
-        yield (
-            b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n"
-        )
-        time.sleep(1.0 / camera_thread.fps)
+    api.run(app, "0.0.0.0", config.API_PORT)
 
 
 def read_sensor_data():
     """Read data from the sensors and update the global data dictionary."""
     has_dht = True
     while not stop_event.is_set():
-        if has_dht:
-            try:
-                dht.measure()
-            except RuntimeError as e:
-                has_dht = False
-                logging.error("Sensor DHT11 not recognized. %s", e)
+        if not has_dht:
+            break
 
-        with data_lock:
-            data["temp"] = dht.temperature if has_dht else -1
-            data["hum"] = dht.humidity if has_dht else -1
-            data["white_lux"] = round(bh.lux, 1) if bh is not None else -1
-            data["ir_lux"] = round(tsl.infrared, 1) if tsl is not None else -1
-            data["uv_lux"] = round(ltr.uvi, 1) if ltr is not None else -1
+        try:
+            dht.measure()
+        except RuntimeError as e:
+            has_dht = False
+            logging.error("Sensor DHT11 not recognized. %s", e)
+
+        data.set(data.TEMP, dht.temperature, has_dht)
+        data.set(data.HUM, dht.humidity, has_dht)
+        data.set(data.WHITE_LUX, round(bh.lux, 1) if bh else -1)
+        data.set(data.IR_LUX, round(tsl.infrared, 1) if tsl else -1)
+        data.set(data.UV_LUX, round(ltr.uvi, 1) if ltr else -1)
         time.sleep(SENSOR_READ_TIME)
 
 
@@ -225,13 +144,13 @@ def update_display():
         draw = ImageDraw.Draw(image)
         line = display.height // 4
 
-        with data_lock:
-            content = [
-                f"Modo {'CAMPO' if field_mode else 'LAB'}",
-                f"Giro {'IZQUIERDA' if states['direction'] else 'DERECHA'}",
-                f"Estado {'ON' if data['running'] else 'OFF'}",
-                f"Progreso {data['progress']}%",
-            ]
+        content = [
+            f"Modo {'CAMPO' if field_mode else 'LAB'}",
+            f"Giro {'IZQUIERDA' if states.get(states.DIRECTION) else 'DERECHA'}",
+            f"Estado {'ON' if data.get(data.RUNNING) else 'OFF'}",
+            f"Progreso {data.get(data.PROGRESS)}%",
+        ]
+
         for i in range(len(content)):
             draw.text((0, line * i), content[i], font=display_font, fill=255)
         display.display(image)
@@ -239,29 +158,6 @@ def update_display():
 
 
 # Functions
-def create_blank_jpeg():
-    # Create a 1x1 black pixel (uint8, BGR)
-    img = np.zeros((1, 1, 3), dtype=np.uint8)
-
-    success, buffer = cv2.imencode(".jpg", img)
-    if not success:
-        return b""  # fallback
-    return buffer.tobytes()
-
-
-def save_rgb_image(prefix: str, frame: MatLike, timestamp: float, step=0):
-    """Save the RGB image to the specified directory with a timestamp and step number.
-    Args:
-        prefix: The label of the image to identify the camera
-        frame: The image frame to save.
-        timestamp: The timestamp to use for the filename.
-        step: The step number for the filename. Defaults to 0.
-    """
-    filename = utils.generate_photo_name(prefix, timestamp, step)
-    dirpath = utils.get_session_dirpath(CAM_DEST, states["session"])
-    cv2.imwrite(os.path.join(dirpath, filename), frame)  # pylint: disable=no-member
-
-
 def update_progress(angle_index: int, prev_camera: int, completed=False):
     """Returns the current progress made based on number of steps and cameras
     Args:
@@ -269,16 +165,22 @@ def update_progress(angle_index: int, prev_camera: int, completed=False):
         prev_camera: The number of the camera that took the last photo
     """
     if completed:
-        data["progress"] = 100
+        data.set(data.PROGRESS, 100)
         logging.info("Forced progress to 100% after marked completed")
         return
-    step = angle_index if not states["direction"] else MOTOR_STEPS - angle_index - 1
-    with data_lock:
-        data["progress"] = round(
-            ((step / MOTOR_STEPS) + (prev_camera / TOTAL_CAMERAS) / MOTOR_STEPS)
-            * 99
-        )
-        logging.info("Changed progress to %d%%", data["progress"])
+
+    step = (
+        angle_index
+        if not states.get(states.DIRECTION)
+        else MOTOR_STEPS - angle_index - 1
+    )
+    data.set(
+        data.PROGRESS,
+        round(
+            ((step / MOTOR_STEPS) + (prev_camera / TOTAL_CAMERAS) / MOTOR_STEPS) * 99
+        ),
+    )
+    logging.info("Changed progress to %d%%", data.get(data.PROGRESS))
 
 
 def toggle_lights(state_white: bool, state_ir: bool, state_uv: bool):
@@ -294,245 +196,91 @@ def toggle_lights(state_white: bool, state_ir: bool, state_uv: bool):
     time.sleep(0.1)
 
 
-# API endpoints
-@app.route("/dashboard")
-def serve_dashboard():
-    """Serve the current dashboard data.
-    Returns:
-        dict: The current dashboard data.
-    """
-    with data_lock:
-        return jsonify(data)
-
-
-@app.route("/dashboard/<string:key>", methods=["POST"])
-def update_dashboard_var(key: str):
-    """Update a dashboard variable with a new value.
-    Args:
-        key: The key of the variable to update.
-    Returns:
-        dict: The updated variable or an error message.
-    """
-    try:
-        value = float(request.args.get("value", 0))
-    except ValueError:
-        return jsonify({"error": "Invalid value"}), 400
-
-    if key == "running":
-        if value == 1 and not data["running"]:
-            run_pre_session()
-
-    if key in data:
-        with data_lock:
-            data[key] = value
-            return jsonify({key: data[key]})
-    return jsonify({"error": f"{key} not found"}), 404
-
-
-@app.route("/video/<int:index>")
-def serve_video(index):
-    """Get the connection for generated frames
-    Args:
-        index: The camera index
-    Returns:
-        The generator wrapped in a HTTP response
-    """
-    if index >= len(preview_cameras) or index < 0:
-        return Response()
-
-    server = preview_cameras[index]
-    return Response(
-        stream_with_context(generate_frames(server)),
-        mimetype="multipart/x-mixed-replace; boundary=frame",
-    )
-
-
-@app.route("/dashboard/photos")
-def serve_photos():
-    """Get all the photos taken on the last execution
-    Returns:
-        dict: All the photo contents stored by all cameras
-    """
-
-    photos_dir = utils.get_session_dirpath(CAM_DEST, states["session"])
-    formats = (".jpg", ".jpeg", ".png")
-    limits = {
-        "RGBT": photos_taken["top"],
-        "RGB": photos_taken["side"],
-        "RGN": photos_taken["uv"],
-        "RE": photos_taken["ir"],
-    }
-    photos = {
-        "RGBT": [],
-        "RGB": [],
-        "RGN": [],
-        "RE": [],
-    }
-    if not states["transferred"]:
-        return jsonify({"photo_counts": limits, "photos": photos, "completed": False})
-
-    # Get all image files and sort them newest to oldest
-    files = [file for file in os.listdir(photos_dir) if file.lower().endswith(formats)]
-    files.sort(
-        key=lambda file: os.path.getctime(os.path.join(photos_dir, file)), reverse=True
-    )
-
-    if len(files) == 0:
-        logging.error("Tried serving photos via API but there's none stored.")
-        return jsonify({"photo_counts": limits, "photos": photos, "completed": True})
-
-    latest_timestamp = utils.extract_photo_name(files[0])[1]
-    logging.debug(
-        "Latest timestamp found is [%s]. Found %d files.", latest_timestamp, len(files)
-    )
-    for file in files:
-        label, timestamp, step, ext = utils.extract_photo_name(file)
-        if timestamp != latest_timestamp:
-            continue
-
-        if label not in photos:
-            logging.warning("Found a file with an unrecognized label: %s", file)
-            continue
-
-        full_path = os.path.join(photos_dir, file)
-        with open(full_path, "rb") as image_file:
-            content = base64.b64encode(image_file.read()).decode("utf-8")
-        utils.insert_array_padded(
-            photos[label],
-            int(step),
-            {
-                "filename": file,
-                "content": content,
-                "content_type": "image/jpeg" if ext == "jpg" else "image/png",
-            },
-        )
-
-    return jsonify({"photo_counts": limits, "photos": photos, "completed": True})
-
-
-@app.route("/session/download")
-def serve_all_sessions():
-    """Zip all of the CAM_DEST directory and return it"""
-    zipped = utils.zip_dir(CAM_DEST)
-    return Response(
-        zipped,
-        mimetype="application/zip",
-        headers={"Content-Disposition": f"attachment; filename=all_sessions.zip"},
-    )
-
-
-@app.route("/session/download/<int:session>")
-def serve_single_session(session: int):
-    """Zip a specific session and return it
-    Args:
-        session: The number of the session to download
-    """
-    session_path = utils.get_session_dirpath(CAM_DEST, session)
-    if not os.path.exists(session_path):
-        return Response(None, 404)
-
-    zipped = utils.zip_dir(session_path)
-    return Response(
-        zipped,
-        mimetype="application/zip",
-        headers={"Content-Disposition": f"attachment; filename=session-{session}.zip"},
-    )
-
-
-@app.route("/session/delete", methods=["DELETE"])
-def delete_all_sessions():
-    """Deletes all of the session directories"""
-    try:
-        shutil.rmtree(CAM_DEST)
-        os.mkdir(CAM_DEST)
-    except Exception as e:
-        return jsonify({"ok": False, "reason": str(e)})
-    return jsonify({"ok": True, "reason": ""})
-
-
-def run_pre_session():
-    states["session"] = utils.get_next_numeric_subdir(CAM_DEST)
-    states["direction"] = utils.debounce_button(DIR_SWITCH, states["direction"])
-    data["progress"] = 0
-    if states["direction"]:
-        states["angle"] = MOTOR_STEPS - 1
-
-
 def move_motor_next():
     """Order the motor to move to the next angle, update roation start time
     If it's moving to the starting position block the main thread and update starting time
     """
-    angle = ANGLES[states["angle"]]
+    angle = ANGLES[states.get(states.ANGLE)]
     logging.info(
         "Began moving towards %d° (%d in bytes).", angle, utils.degree_to_byte(angle)
     )
     dxl.set_goal_position(utils.degree_to_byte(angle))
-    with data_lock:
-        data["angle"] = angle
+    data.set(data.ANGLE, angle)
 
     times["rotation_start"] = time.time()
-    if states["angle"] == 0:
+    if states.get(states.ANGLE) == 0:
         time.sleep(MOTOR_RESET_TIME)  # Ensures the motor reaches starting position
         times["process_start"] = time.time()
 
 
 def main():
     """Main function to handle the chamber operations."""
-    new_start = utils.debounce_button(START_BTN, states["start"])
-    new_stop = utils.debounce_button(STOP_BTN, states["stop"])
+    new_start = utils.debounce_button(START_BTN, states.get(states.START))
+    new_stop = utils.debounce_button(STOP_BTN, states.get(states.STOP))
 
-    if data["running"]:
-        data["running"] = not (new_stop and not states["stop"])
+    if data.get(data.RUNNING):
+        data.set(data.RUNNING, not (new_stop and not states.get(states.STOP)))
     else:
-        data["running"] = new_start and not states["start"]
-        if data["running"]:
-            run_pre_session()
+        data.set(data.RUNNING, new_start and not states.get(states.START))
 
-    if data["running"]:
-        if states["rotated"]:
+    if data.get(data.RUNNING):
+        if states.get(states.ANGLE):
             move_motor_next()
-            states["rotated"] = False  # Rotation just started so it hasn't finished yet
+            states.set(
+                states.ROTATED, False
+            )  # Rotation just started so it hasn't finished yet
 
         if time.time() - times["rotation_start"] > MOTOR_STEP_TIME:
-            logging.info("Step %d / %d started.", states["angle"], MOTOR_STEPS)
+            logging.info("Step %d / %d started.", states.get(states.ANGLE), MOTOR_STEPS)
 
             toggle_lights(True, False, False)
-            frame = rgb_camera.get_frame()
-            photos_taken["side"] += 1
+            frame = side_cam.get_frame()
+            photos_taken.add(photos_taken.SIDE, 1)
             if frame is not None:
-                save_rgb_image("RGB", frame, times["process_start"], states["angle"])
-            update_progress(states["angle"], 1)
-
-            frame_top = rgbt_camera.get_frame()
-            photos_taken["top"] += 1
-            if frame_top is not None:
-                save_rgb_image(
-                    "RGBT", frame_top, times["process_start"], states["angle"]
+                side_cam.save_image(
+                    CAM_DEST, frame, times["process_start"], states.get(states.ANGLE)
                 )
-            update_progress(states["angle"], 2)
+            update_progress(states.get(states.ANGLE), 1)
+
+            frame_top = top_cam.get_frame()
+            photos_taken.add(photos_taken.TOP, 1)
+            if frame_top is not None:
+                top_cam.save_image(
+                    CAM_DEST,
+                    frame_top,
+                    times["process_start"],
+                    states.get(states.ANGLE),
+                )
+            update_progress(states.get(states.ANGLE), 2)
 
             toggle_lights(False, True, False)
             re_camera.read()
-            photos_taken["ir"] += 1
-            update_progress(states["angle"], 3)
+            photos_taken.add(photos_taken.IR, 1)
+            update_progress(states.get(states.ANGLE), 3)
             # At least one multispectral camera took a picture
-            states["transferred"] = False
+            states.set(states.TRANSFERRED, False)
 
             toggle_lights(False, False, True)
             rgn_camera.read()
-            photos_taken["uv"] += 1
-            update_progress(states["angle"], 4)
+            photos_taken.add(photos_taken.UV, 1)
+            update_progress(states.get(states.ANGLE), 4)
 
-            states["rotated"] = True
-            if states["direction"]:
-                states["angle"] -= 1
+            states.set(states.ROTATED, True)
+            if states.get(states.DIRECTION):
+                states.add(states.ANGLE, -1)
             else:
-                states["angle"] += 1
+                states.add(states.ANGLE, 1)
             toggle_lights(False, False, False)
 
-    completed_steps = states["angle"] >= MOTOR_STEPS or states["angle"] < 0
-    if not states["transferred"] and (completed_steps or not data["running"]):
-        logging.info("Began transferring %d images from the cameras.", states["angle"])
+    completed_steps = (
+        states.get(states.ANGLE) >= MOTOR_STEPS or states.get(states.ANGLE) < 0
+    )
+    if not states.get(states.TRANSFERRED) and (
+        completed_steps or not data.get(data.RUNNING)
+    ):
+        logging.info(
+            "Began transferring %d images from the cameras.", states.get(states.ANGLE)
+        )
 
         # Transfer both multispectral cameras at the same time
         logging.info("Dismounting cameras")
@@ -541,9 +289,11 @@ def main():
         time.sleep(5)
 
         logging.info("Began transferring pictures")
-        re_camera.transfer_n(states["angle"], states["session"], times["process_start"])
+        re_camera.transfer_n(
+            states.get(states.ANGLE), states.get(states.SESSION), times["process_start"]
+        )
         rgn_camera.transfer_n(
-            states["angle"], states["session"], times["process_start"]
+            states.get(states.ANGLE), states.get(states.SESSION), times["process_start"]
         )
         re_camera.clear_sd()
         rgn_camera.clear_sd()
@@ -552,18 +302,18 @@ def main():
         re_camera.toggle_mount()
         rgn_camera.toggle_mount()
 
-        update_progress(states["angle"], 4, True)
-        states["angle"] = 0
-        states["transferred"] = True
-        data["running"] = False
+        update_progress(states.get(states.ANGLE), 4, True)
+        states.set(states.ANGLE, 0)
+        states.set(states.TRANSFERRED, True)
+        data.set(data.RUNNING, False)
 
     # Update states
-    states["start"] = new_start
-    states["stop"] = new_stop
+    states.set(states.START, new_start)
+    states.set(states.STOP, new_stop)
 
 
 if __name__ == "__main__":
-    states["session"] = utils.get_next_numeric_subdir(CAM_DEST)
+    states.set(states.SESSION, utils.get_next_numeric_subdir(CAM_DEST))
 
     api_thread = threading.Thread(target=start_api, daemon=True)
     sensor_thread = threading.Thread(target=read_sensor_data, daemon=True)
@@ -572,8 +322,8 @@ if __name__ == "__main__":
         api_thread.start()
         sensor_thread.start()
         display_thread.start()
-        rgb_camera.start()
-        rgbt_camera.start()
+        side_cam.start()
+        top_cam.start()
         while True:
             main()
             time.sleep(0.1)
@@ -583,8 +333,8 @@ if __name__ == "__main__":
         stop_event.set()
         sensor_thread.join()
         display_thread.join()
-        rgb_camera.release()
-        rgbt_camera.release()
+        side_cam.release()
+        top_cam.release()
         dxl.set_torque_enable(0)
         Ax12.disconnect()
         for pin in [RE_CAMERA, RGN_CAMERA, WHITE_LIGHT, UV_LIGHT, IR_LIGHT]:
