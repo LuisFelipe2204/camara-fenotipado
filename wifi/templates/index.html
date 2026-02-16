@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Wi-Fi Setup</title>
+
+    <style>
+        body {
+            display: flex;
+            color: white;
+            background: black;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        h1 {
+            margin-top: 6rem;
+            font-weight: 500;
+            font-size: 3rem;
+        }
+        p {
+            font-weight: 500;
+            font-size: 1.125rem;
+            color: #c0c0c0;
+        }
+        input {
+            color: white;
+            background-color: transparent;
+            border: 1px solid #404040;
+            padding: 1rem 2rem;
+            width: 100%;
+            border-radius: 100vmax;
+            font-size: 1rem;
+        }
+        form {
+
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        button {
+            background-color: hsl(210, 50%, 50%);
+            padding: 1rem 2rem;
+            color: black;
+            font-size: 1rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 100vmax;
+        }
+        table td:first-of-type {
+            padding-right: 1rem;
+            font-weight: 700;
+        }   
+
+    </style>
+
+</head>
+<body>
+    <h1>Wi-Fi Manager</h1>
+    <p>Manage the Wi-Fi connection of the system, write the credentials of a new network to connect to.</p>
+
+    <table>
+        <tr>
+            <td>AP</td>
+            <td>{{ ap_ssid }}</td>
+        </tr>
+        <tr>
+            <td>IP</td>
+            <td>{{ ap_ip or "Not available" }}</td>
+        </tr>
+    </table>
+
+    <form method="post" action="/wifi-cred">
+        <input type="text" id="ssid" name="ssid" placeholder="Network SSID" required><br><br>
+        <input type="password" id="pass" name="pass" placeholder="Password (Space for blank)" required><br><br>
+        <button type="submit">Connect</button>
+    </form>
+</body>
+</html>
