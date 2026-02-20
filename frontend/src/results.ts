@@ -66,7 +66,7 @@ document.addEventListener("runningFinished", async () => {
   content.style.display = "none";
   loader.style.display = "flex";
 
-  const data: Data | null = await poll("/api/dashboard/photos");
+  const data: Data | null = await poll("/api/photos");
   try {
     if (!data) return dispatchToast("Failed to fetch images.");
   } finally {

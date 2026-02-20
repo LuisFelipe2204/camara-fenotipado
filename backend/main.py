@@ -55,7 +55,7 @@ DXL_BAUDRATE = 1_000_000
 DXL_ID = 1
 DXL_SPEED = 50
 MOTOR_STEPS = 6
-MOTOR_STEP_TIME = 0.1
+MOTOR_STEP_TIME = 2
 MOTOR_RESET_TIME = MOTOR_STEPS * MOTOR_STEP_TIME
 ANGLES = [round(i * (300 / (MOTOR_STEPS - 1))) for i in range(MOTOR_STEPS)]
 SENSOR_READ_TIME = 1
@@ -118,14 +118,17 @@ def start_api():
 def read_sensor_data():
     """Read data from the sensors and update the global data dictionary."""
     has_dht = True
+    dht_read = 0
     while not stop_event.is_set():
-        if not has_dht:
-            break
-
         try:
             dht.measure()
-        except RuntimeError as e:
-            logging.error("Sensor DHT11 not recognized. %s", e)
+            if dht.temperature is None or dht.humidity is None:
+                raise Exception("Succeeded reading. Read None")
+            has_dht = True
+        except Exception as e:
+            if has_dht:
+                logging.warning("Sensor DHT11 not recognized. %s", e)
+            has_dht = False
 
         data.set(data.TEMP, dht.temperature, has_dht)
         data.set(data.HUM, dht.humidity, has_dht)
@@ -136,22 +139,24 @@ def read_sensor_data():
 
 
 def connection_check():
+    has_connection_server = True
     while not stop_event.is_set():
         try:
             res = requests.get(CONNECTION_URL)
+            has_connection_server = True
         except Exception as e:
-            print(f"Error checking connection: {e}")
+            if has_connection_server:
+                logging.warning(f"Error checking connection: {e}")
+                has_connection_server = False
             time.sleep(WIFI_CHECK_TIME)
             continue
 
         if res.status_code == 200:
             data = res.json()
-            active_ap = data["active_ap"]
-            url = f"http://{data['ip']}:{data['port']}"
-        else:
-            url = "URL_NOT_FOUND"
+            ap_conn["active"] = data["active_ap"]
+            ap_conn["ip"] = data["ip"]
+            ap_conn["port"] = data["port"]
         time.sleep(WIFI_CHECK_TIME)
-
 
 
 def update_display():
@@ -167,7 +172,7 @@ def update_display():
 
         content = [
             f"AP: {config.AP_SSID if ap_conn['active'] else 'OFF'}",
-            f"http://{ap_conn['ip']}:{ap_conn['port']}/" if ap_conn['active'] else "",
+            f"http://{ap_conn['ip']}:{ap_conn['port']}/" if ap_conn['active'] else "NO AP URL (OK)",
             f"Sentido: {'ANTIHORARIO' if states.get(states.DIRECTION) else 'HORARIO'}",
             f"Estado: {'ON' if data.get(data.RUNNING) else 'OFF'} | {data.get(data.PROGRESS)}%",
         ]
@@ -215,13 +220,15 @@ def toggle_lights(state_white: bool, state_ir: bool, state_uv: bool):
     WHITE_LIGHT.value = state_white
     IR_LIGHT.value = state_ir
     UV_LIGHT.value = state_uv
-    time.sleep(0.1)
+    time.sleep(1)
 
 
 def move_motor_next():
     """Order the motor to move to the next angle, update roation start time
     If it's moving to the starting position block the main thread and update starting time
     """
+    dxl.set_moving_speed(DXL_SPEED)
+    logging.info(f"{states.get(states.ANGLE)}")
     angle = ANGLES[states.get(states.ANGLE)]
     logging.info(
         "Began moving towards %d° (%d in bytes).", angle, utils.degree_to_byte(angle)
@@ -230,7 +237,7 @@ def move_motor_next():
     data.set(data.ANGLE, angle)
 
     times["rotation_start"] = time.time()
-    if states.get(states.ANGLE) == 0:
+    if (states.get(states.ANGLE) == 0 or states.get(states.ANGLE) == MOTOR_STEPS - 1) and data.get(data.PROGRESS) == 0:
         time.sleep(MOTOR_RESET_TIME)
         times["process_start"] = time.time()
 
@@ -246,7 +253,7 @@ def main():
         data.set(data.RUNNING, new_start and not states.get(states.START))
 
     if data.get(data.RUNNING):
-        if states.get(states.ANGLE):
+        if states.get(states.ROTATED):
             move_motor_next()
             states.set(
                 states.ROTATED, False
@@ -256,6 +263,7 @@ def main():
             logging.info("Step %d / %d started.", states.get(states.ANGLE), MOTOR_STEPS)
 
             toggle_lights(True, False, False)
+            logging.info("Taking RGB Side picture...")
             frame = side_cam.get_frame()
             photos_taken.add(photos_taken.SIDE, 1)
             if frame is not None:
@@ -264,6 +272,7 @@ def main():
                 )
             update_progress(states.get(states.ANGLE), 1)
 
+            logging.info("Taking RGB Top picture...")
             frame_top = top_cam.get_frame()
             photos_taken.add(photos_taken.TOP, 1)
             if frame_top is not None:
@@ -275,6 +284,7 @@ def main():
                 )
             update_progress(states.get(states.ANGLE), 2)
 
+            logging.info("Taking RE and RGN pictures...")
             toggle_lights(False, True, False)
             re_camera.read()
             rgn_camera.read()
@@ -286,12 +296,13 @@ def main():
             #toggle_lights(False, False, True)
             #update_progress(states.get(states.ANGLE), 4)
 
+            logging.info("Updating end of loop states...")
             states.set(states.ROTATED, True)
             if states.get(states.DIRECTION):
                 states.add(states.ANGLE, -1)
             else:
                 states.add(states.ANGLE, 1)
-            toggle_lights(True, False, False)
+            toggle_lights(False, False, False)
 
     completed_steps = (
         states.get(states.ANGLE) >= MOTOR_STEPS or states.get(states.ANGLE) < 0
