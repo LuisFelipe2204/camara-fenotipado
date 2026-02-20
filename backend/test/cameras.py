@@ -28,7 +28,7 @@ RGB_CAMERA_INDEX = 0
 RGBTOP_CAMERA_INDEX = 2
 SOURCE_RE = "/media/sise/0000-0001/DCIM/Photo"
 SOURCE_RGN = "/media/sise/0000-00011/DCIM/Photo"
-CAM_DEST = "/home/sise/Desktop/pictures"
+CAM_DEST = "/home/sise/Desktop/Fenotipado"
 SEPARATOR = "="
 
 # Variables
@@ -54,10 +54,13 @@ def save_rgb_image(prefix: str, frame: MatLike, timestamp: float, step=0):
 
 
 def trigger_picture():
-    print("Triggering...")
+    print("Triggering RE...")
     re_camera.read()
+    print("Triggering RGN...")
     rgn_camera.read()
+    print("Triggering RGB...")
     success, frame = rgb_camera.read()
+    print("Triggering RGBT...")
     successtop, frametop = rgb_cameratop.read()
     if success:
         save_rgb_image("RGB", frame, time.time())
@@ -66,14 +69,24 @@ def trigger_picture():
 
 
 def mount_dismount():
-    print("Mount/Dismount")
+    print("Mount/Dismount RE")
     re_camera.toggle_mount()
+    print("Mount/Dismount RGN")
     rgn_camera.toggle_mount()
 
 
 def transfer_images():
-    re_camera.transfer_latest()
-    rgn_camera.transfer_latest()
+    print("Transferring RE")
+    try:
+        re_camera.transfer_latest()
+    except Exception as e:
+        print(f"Error tranferring RE: {e}")
+
+    print("Transferring RGN")
+    try:
+        rgn_camera.transfer_latest()
+    except Exception as e:
+        print(f"Error tranferring RE: {e}")
 
 
 cursor = 0

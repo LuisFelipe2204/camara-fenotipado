@@ -2,7 +2,7 @@ import threading
 
 import digitalio
 
-from backend import config, utils
+import config, utils
 
 
 class DataManager:

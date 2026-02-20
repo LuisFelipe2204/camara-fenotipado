@@ -29,9 +29,9 @@ i2c = busio.I2C(board.SCL, board.SDA)
 DHT_PIN = board.D26
 RE_CAMERA = digitalio.DigitalInOut(board.D23)
 RGN_CAMERA = digitalio.DigitalInOut(board.D24)
-WHITE_LIGHT = digitalio.DigitalInOut(board.D17)
+WHITE_LIGHT = digitalio.DigitalInOut(board.D27)
 UV_LIGHT = digitalio.DigitalInOut(board.D22)
-IR_LIGHT = digitalio.DigitalInOut(board.D27)
+IR_LIGHT = digitalio.DigitalInOut(board.D17)
 START_BTN = digitalio.DigitalInOut(board.D5)
 STOP_BTN = digitalio.DigitalInOut(board.D6)
 DIR_SWITCH = digitalio.DigitalInOut(board.D12)
@@ -60,7 +60,7 @@ MOTOR_RESET_TIME = MOTOR_STEPS * MOTOR_STEP_TIME
 ANGLES = [round(i * (300 / (MOTOR_STEPS - 1))) for i in range(MOTOR_STEPS)]
 SENSOR_READ_TIME = 1
 DISPLAY_UPDATE_TIME = 0.2
-WIFI_CHECK_TIME = 1
+WIFI_CHECK_TIME = 5
 TOTAL_CAMERAS = 4
 
 # Class configuration
@@ -125,7 +125,6 @@ def read_sensor_data():
         try:
             dht.measure()
         except RuntimeError as e:
-            has_dht = False
             logging.error("Sensor DHT11 not recognized. %s", e)
 
         data.set(data.TEMP, dht.temperature, has_dht)
@@ -138,7 +137,13 @@ def read_sensor_data():
 
 def connection_check():
     while not stop_event.is_set():
-        res = requests.get(CONNECTION_URL)
+        try:
+            res = requests.get(CONNECTION_URL)
+        except Exception as e:
+            print(f"Error checking connection: {e}")
+            time.sleep(WIFI_CHECK_TIME)
+            continue
+
         if res.status_code == 200:
             data = res.json()
             active_ap = data["active_ap"]
@@ -162,9 +167,9 @@ def update_display():
 
         content = [
             f"AP: {config.AP_SSID if ap_conn['active'] else 'OFF'}",
-            f"Wi-Fi URL: http://{ap_conn['ip']}:{ap_conn['port']}/"
+            f"http://{ap_conn['ip']}:{ap_conn['port']}/" if ap_conn['active'] else "",
             f"Sentido: {'ANTIHORARIO' if states.get(states.DIRECTION) else 'HORARIO'}",
-            f"Estado: {'ON' if data.get(data.RUNNING) else 'OFF'} | {data.get(data.PROGRESS)}",
+            f"Estado: {'ON' if data.get(data.RUNNING) else 'OFF'} | {data.get(data.PROGRESS)}%",
         ]
         line = display.height // len(content)
 
@@ -272,21 +277,21 @@ def main():
 
             toggle_lights(False, True, False)
             re_camera.read()
-            photos_taken.add(photos_taken.IR, 1)
-            update_progress(states.get(states.ANGLE), 3)
-            states.set(states.TRANSFERRED, False)
-
-            toggle_lights(False, False, True)
             rgn_camera.read()
+            photos_taken.add(photos_taken.IR, 1)
             photos_taken.add(photos_taken.UV, 1)
             update_progress(states.get(states.ANGLE), 4)
+            states.set(states.TRANSFERRED, False)
+
+            #toggle_lights(False, False, True)
+            #update_progress(states.get(states.ANGLE), 4)
 
             states.set(states.ROTATED, True)
             if states.get(states.DIRECTION):
                 states.add(states.ANGLE, -1)
             else:
                 states.add(states.ANGLE, 1)
-            toggle_lights(False, False, False)
+            toggle_lights(True, False, False)
 
     completed_steps = (
         states.get(states.ANGLE) >= MOTOR_STEPS or states.get(states.ANGLE) < 0
