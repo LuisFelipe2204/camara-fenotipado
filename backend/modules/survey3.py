@@ -45,7 +45,7 @@ class Survey3:
         self.pin.value = True
         time.sleep(pulse)
         self.pin.value = False
-        time.sleep(0.1)
+        time.sleep(0.5)
 
     def read(self):
         logging.info(f"Triggering {self.id}")

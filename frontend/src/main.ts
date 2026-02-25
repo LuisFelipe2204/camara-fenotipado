@@ -15,7 +15,7 @@ import "./components/widget-button";
 import "./controls";
 import "./results";
 
-const FETCH_INTERVAL = 2000;
+const FETCH_INTERVAL = 500;
 setInterval(async () => {
   const res = await fetch("/api/dashboard");
   // const res = {

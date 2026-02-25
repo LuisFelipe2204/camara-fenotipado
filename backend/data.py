@@ -60,7 +60,7 @@ class Data(DataManager):
         states.set(states.SESSION, utils.get_next_numeric_subdir(config.CAM_DEST))
         states.set(
             states.DIRECTION,
-            utils.debounce_button(self.dir_switch, states.get(states.DIRECTION)),
+            0 #utils.debounce_button(self.dir_switch, states.get(states.DIRECTION)),
         )
         data.set(data.PROGRESS, 0)
         if states.get(states.DIRECTION):

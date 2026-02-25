@@ -8,6 +8,8 @@ const content = resultPopup.querySelector(".popup-main") as HTMLDivElement;
 
 const currentPages = document.getElementById("current-page") as HTMLSpanElement;
 const totalPages = document.getElementById("total-pages") as HTMLSpanElement;
+const prevPage = document.getElementById("previous-page") as HTMLSpanElement;
+const nextPage = document.getElementById("next-page") as HTMLSpanElement;
 
 type Response = { filename: string; content: string; content_type: string };
 type Data = {
@@ -88,11 +90,11 @@ document.addEventListener("runningFinished", async () => {
   Object.values(results).forEach((result) => result.display());
 });
 
-content.addEventListener("click", () => {
-  Result.index = (Result.index + 1) % (Result.max || 1);
-  currentPages.textContent = String(Result.index + 1);
-  Object.values(results).forEach((result) => result.display());
-});
+// content.addEventListener("click", () => {
+//   Result.index = (Result.index + 1) % (Result.max || 1);
+//   currentPages.textContent = String(Result.index + 1);
+//   Object.values(results).forEach((result) => result.display());
+// });
 
 resultPopup.addEventListener("click", (ev) => {
   const content = resultPopup.querySelector(".popup-content") as HTMLDivElement;
@@ -104,3 +106,15 @@ resultPopup.addEventListener("click", (ev) => {
     resultPopup.classList.toggle("hidden", true);
   }
 });
+
+nextPage.addEventListener("click", () => {
+  Result.index = (Result.index + 1) % (Result.max || 1);
+  currentPages.textContent = String(Result.index + 1);
+  Object.values(results).forEach((result) => result.display());
+})
+
+prevPage.addEventListener("click", () => {
+  Result.index = (Result.index - 1) % (Result.max || 1);
+  currentPages.textContent = String(Result.index + 1);
+  Object.values(results).forEach((result) => result.display());
+})

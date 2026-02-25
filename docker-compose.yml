@@ -7,7 +7,11 @@ services:
     - ${API_PORT}:5000
     privileged: true
     volumes:
-    - /media:/media
+    - type: bind
+      source: /media
+      target: /media
+      bind:
+        propagation: rshared
     - ${CAM_DEST}:/results
     env_file:
     - .env
@@ -20,3 +24,5 @@ services:
     - ${DASHBOARD_PORT}:80
     env_file:
     - .env
+    depends_on:
+    - backend
