@@ -1,4 +1,17 @@
 services:
+  backend:
+    build: ./backend
+    container_name: backend-camara
+    restart: unless-stopped
+    ports:
+    - ${API_PORT}:5000
+    privileged: true
+    volumes:
+    - /media:/media
+    - ${CAM_DEST}:/results
+    env_file:
+    - .env
+
   frontend:
     build: ./frontend
     container_name: dashboard-camara

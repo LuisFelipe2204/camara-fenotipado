@@ -48,16 +48,18 @@ class Survey3:
         time.sleep(0.1)
 
     def read(self):
+        logging.info(f"Triggering {self.id}")
         self.pulse(Pulse.DO_NOTHING)
         self.pulse(Pulse.TAKE_PHOTO)
         self.pulse(Pulse.DO_NOTHING)
-        time.sleep(1)
+        time.sleep(2)
 
     def toggle_mount(self):
+        logging.info(f"Toggling mount for {self.id}")
         self.pulse(Pulse.DO_NOTHING)
         self.pulse(Pulse.TRANSFER)
         self.pulse(Pulse.DO_NOTHING)
-        time.sleep(3)
+        time.sleep(2)
 
     def transfer_latest(self):
         if not path.exists(self.origin):

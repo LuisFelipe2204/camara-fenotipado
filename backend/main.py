@@ -287,14 +287,14 @@ def main():
             logging.info("Taking RE and RGN pictures...")
             toggle_lights(False, True, False)
             re_camera.read()
-            rgn_camera.read()
             photos_taken.add(photos_taken.IR, 1)
-            photos_taken.add(photos_taken.UV, 1)
-            update_progress(states.get(states.ANGLE), 4)
+            #update_progress(states.get(states.ANGLE), 3)
             states.set(states.TRANSFERRED, False)
 
             #toggle_lights(False, False, True)
-            #update_progress(states.get(states.ANGLE), 4)
+            rgn_camera.read()
+            photos_taken.add(photos_taken.UV, 1)
+            update_progress(states.get(states.ANGLE), 4)
 
             logging.info("Updating end of loop states...")
             states.set(states.ROTATED, True)

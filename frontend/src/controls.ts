@@ -17,7 +17,7 @@ buttons.download.addEventListener("click", async () => {
 
   try {
     dispatchToast("Preparing files for download...");
-    const res = await fetch("/api/session/download");
+    const res = await fetch("/api/session");
     if (!res.ok) return dispatchToast("Error while downloading.");
 
     const blob = await res.blob();
@@ -38,7 +38,7 @@ buttons.delete.addEventListener("click", async () => {
   toggleDisabled(buttons.delete, true);
 
   try {
-    const res = await fetch("/api/session/delete", { method: "DELETE" });
+    const res = await fetch("/api/session", { method: "DELETE" });
     if (!res.ok) return dispatchToast("Failed to delete stored files. Try again");
 
     const data = await res.json();
