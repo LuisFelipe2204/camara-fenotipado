@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -20,25 +20,6 @@
 
       <!-- Toast popup that appears at the top to show a message -->
       <div class="hidden" id="popup"></div>
-
-      <!-- Control panel that appears at the bottom right of the page -->
-      <div id="control-panel">
-        <div class="button-wrapper">
-          <button class="panel-button" id="open-results">
-            <img src="/icons/picture.svg" alt="" />
-          </button>
-        </div>
-        <div class="button-wrapper">
-          <button class="panel-button" id="download">
-            <img src="/icons/download.svg" alt="" />
-          </button>
-        </div>
-        <div class="button-wrapper">
-          <button class="panel-button" id="delete">
-            <img src="/icons/delete.svg" alt="" />
-          </button>
-        </div>
-      </div>
 
       <!-- Popup window that shows image results  -->
       <div id="results-popup" class="window-popup hidden">
@@ -101,61 +82,120 @@
         </div>
       </div>
 
-      <!-- Main display grid of all the dashboard components -->
-      <main>
-        <div class="widget">
-          <span class="widget-title">Cámara Superior</span>
-          <live-camera id="live-rgbt" src="/api/video/1" />
-        </div>
-        <div class="widget">
-          <span class="widget-title">Cámara Lateral</span>
-          <live-camera id="live-rgb" src="/api/video/0" />
-        </div>
-        <div class="widget">
-          <span class="widget-title">Temperatura</span>
-          <widget-thermo id="temp" max="50" color="#D6821A" suffix="°C" />
-        </div>
-        <div class="widget">
-          <span class="widget-title">Humedad</span>
-          <widget-gauge id="hum" suffix="%" color="#0491BF" />
-        </div>
-        <div class="widget">
-          <span class="widget-title">Luz Blanca</span>
-          <widget-bulb id="white_lux" max="1000" color="#6A9491" suffix="lux" />
-        </div>
-        <div class="widget">
-          <span class="widget-title">Luz Infrarroja</span>
-          <widget-bulb id="ir_lux" max="1000" color="#dc3b3b" suffix="lux" />
-        </div>
-        <div class="widget">
-          <span class="widget-title">Luz Ultravioleta</span>
-          <widget-bulb id="uv_lux" max="14" color="#941AD6" suffix="lux" />
-        </div>
-        <div class="widget">
-          <span class="widget-title">Ángulo</span>
-          <widget-value id="angle" suffix="°" color="#000" />
-        </div>
-        <div class="widget">
-          <span class="widget-title">Progreso</span>
-          <widget-bar id="progress" suffix="%" color="#2AAB1F" />
-        </div>
-        <div class="widget">
-          <widget-button id="running" on="Encendido" off="Apagado" />
-        </div>
-        <div class="widget">
-          <div id="credits">
-            <div class="names">
-              <p>Luis Felipe Arciniegas Espitia</p>
-              <p>Nicolás José Sánchez Mendoza</p>
-              <p>Samuel Giraldo Cortés</p>
-              <p>Centro de Laboratorios</p>
-            </div>
-            <div class="logo">
-              <img src="/images/sise-logo.png" alt="SISE" />
-            </div>
+      <!-- Confirmation popup to delete all sessions -->
+      <div class="window-popup text-popup hidden" id="delete-popup">
+        <div class="popup-content">
+          <h2 class="popup-title">Eliminar resultados</h2>
+          <div class="popup-text">
+            ¿Desea eliminar todos los resultados almacenados en la Cámara de Fenotipado para siempre
+            (mucho tiempo)? Esta acción no se puede revertir
+          </div>
+          <div class="confirmation-buttons">
+            <button class="primary-btn">Confirmar</button>
+            <button class="secondary-btn">Cancelar</button>
           </div>
         </div>
-      </main>
+      </div>
+      
+      <!-- Confirmation popup to turn off the system -->
+      <div class="window-popup text-popup hidden" id="turnoff-popup">
+        <div class="popup-content">
+          <h2 class="popup-title">Apagar el sistema</h2>
+          <div class="popup-text">
+            ¿Desea apagar el sistema?
+          </div>
+          <div class="confirmation-buttons">
+            <button class="primary-btn">Confirmar</button>
+            <button class="secondary-btn">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-container">
+        <!-- Main display grid of all the dashboard components -->
+        <main>
+          <div class="widget">
+            <span class="widget-title">Cámara Superior</span>
+            <live-camera id="live-rgbt" src="/api/video/1" />
+          </div>
+          <div class="widget">
+            <span class="widget-title">Cámara Lateral</span>
+            <live-camera id="live-rgb" src="/api/video/0" />
+          </div>
+          <div class="widget">
+            <span class="widget-title">Temperatura</span>
+            <widget-thermo id="temp" max="50" color="#D6821A" suffix="°C" />
+          </div>
+          <div class="widget">
+            <span class="widget-title">Humedad</span>
+            <widget-gauge id="hum" suffix="%" color="#0491BF" />
+          </div>
+          <div class="widget">
+            <span class="widget-title">Luz Blanca</span>
+            <widget-bulb id="white_lux" max="1000" color="#6A9491" suffix="lux" />
+          </div>
+          <div class="widget">
+            <span class="widget-title">Luz Infrarroja</span>
+            <widget-bulb id="ir_lux" max="1000" color="#dc3b3b" suffix="lux" />
+          </div>
+          <div class="widget">
+            <span class="widget-title">Luz Ultravioleta</span>
+            <widget-bulb id="uv_lux" max="14" color="#941AD6" suffix="lux" />
+          </div>
+          <div class="widget">
+            <span class="widget-title">Ángulo</span>
+            <widget-value id="angle" suffix="°" color="#000" />
+          </div>
+          <div class="widget">
+            <span class="widget-title">Progreso</span>
+            <widget-bar id="progress" suffix="%" color="#2AAB1F" />
+          </div>
+          <div class="widget">
+            <widget-button id="running" on="Encendido" off="Apagado" />
+          </div>
+          <div class="widget">
+            <div id="credits">
+              <div class="names">
+                <p>Luis Felipe Arciniegas Espitia</p>
+                <p>Nicolás José Sánchez Mendoza</p>
+                <p>Samuel Giraldo Cortés</p>
+                <p>Centro de Laboratorios</p>
+              </div>
+              <div class="logo">
+                <img src="/images/sise-logo.png" alt="SISE" />
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <!-- Control panel that appears at the bottom right of the page -->
+        <div id="control-panel">
+          <div class="button-wrapper">
+            <div class="button-hover-label">Ver último resultado</div>
+            <button class="panel-button" id="open-results">
+              <img src="/icons/picture.svg" alt="" />
+            </button>
+          </div>
+          <div class="button-wrapper">
+            <div class="button-hover-label">Descargar resultados</div>
+            <button class="panel-button" id="download">
+              <img src="/icons/download.svg" alt="" />
+            </button>
+          </div>
+          <div class="button-wrapper">
+            <div class="button-hover-label">Eliminar resultados</div>
+            <button class="panel-button" id="delete">
+              <img src="/icons/delete.svg" alt="" />
+            </button>
+          </div>
+          <div class="button-wrapper lower-control">
+            <div class="button-hover-label">Apagar</div>
+            <button class="panel-button" id="turn-off">
+              <img src="/icons/turn-off.svg" alt="" />
+            </button>
+          </div>
+        </div>
+      </div>
 
       <!-- Templates for all the components -->
       <!-- Thermometer -->

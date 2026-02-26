@@ -14,23 +14,11 @@ import "./components/widget-button";
 
 import "./controls";
 import "./results";
+import "./popup";
 
 const FETCH_INTERVAL = 500;
 setInterval(async () => {
   const res = await fetch("/api/dashboard");
-  // const res = {
-  //   ok: true,
-  //   json: () => ({
-  //     temp: Math.random() * 50,
-  //     "white-light": Math.random() * 1000,
-  //     "ir-light": Math.random() * 1000,
-  //     "uv-light": Math.random() * 14,
-  //     hum: Math.random() * 100,
-  //     angle: Math.random() * 300,
-  //     progress: Math.random() * 100,
-  //     running: Math.random() > 0.5 ? 1 : 0,
-  //   }),
-  // };
   if (!res.ok) {
     console.error("Error fetching dashboard data.", res);
     return;
@@ -48,12 +36,16 @@ setInterval(async () => {
   });
 }, FETCH_INTERVAL);
 
+function clamp(value: number, min: number, max: number) {
+  return Math.max(Math.min(value, max), min);
+}
+
 function getPercentage(value: number, min: number, max: number) {
   return (value - min) / (max - min);
 }
 
 function applyPercentage(percentage: number, min: number, max: number) {
-  return min + (max - min) * percentage;
+  return clamp(min + (max - min) * percentage, min, max);
 }
 
 async function poll(src: string, maxAttempts = 10) {

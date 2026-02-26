@@ -4,7 +4,7 @@ main {
   gap: 0.5rem;
   grid-template-columns: repeat(16, 1fr);
   grid-template-rows: repeat(10, 1fr);
-  max-height: calc(100% - 2rem - 4.25rem);
+  /* max-height: calc(100% - 2rem - 4.25rem); */
 }
 
 .widget:has(#live-rgbt),
