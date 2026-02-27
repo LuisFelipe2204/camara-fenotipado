@@ -27,39 +27,49 @@ class Pulse:
 
 
 class Survey3:
-    def __init__(self, pin: digitalio.DigitalInOut, id: str, origin: str, dest: str):
+    def __init__(self, pin: digitalio.DigitalInOut, cam_id: str, origin: str, dest: str):
         self.pin = pin
         self.origin = origin
         self.dest = dest
-        self.id = id
+        self.id = cam_id
         self.pin.direction = digitalio.Direction.OUTPUT
         self.pin.value = False
+        self.set_mount(True)
 
-        if path.isdir(self.origin):
-            logging.warning(
-                "Found existing path for camera %s, mounting back the SD.", self.id
-            )
+    def set_mount(self, to_mount: bool):
+        # When to_mount is True, it ensures the SD becomes not accessible
+        origin_exists = path.isdir(self.origin)
+        # Mounted means the origin path should not be accessible
+        if to_mount and origin_exists:
+            logging.warning("Origin for camera %s accessible. Mounting back.", self.id)
             self.toggle_mount()
+            return True
+        # Dismounted means origin should exist
+        if not to_mount and not origin_exists:
+            logging.warning("Origin for camera %s not accessible. Dismounting.", self.id)
+            self.toggle_mount()
+            return True
+        return False
 
     def pulse(self, pulse: float):
         self.pin.value = True
         time.sleep(pulse)
         self.pin.value = False
-        time.sleep(0.5)
+        time.sleep(0.1)
 
     def read(self):
         logging.info(f"Triggering {self.id}")
         self.pulse(Pulse.DO_NOTHING)
         self.pulse(Pulse.TAKE_PHOTO)
         self.pulse(Pulse.DO_NOTHING)
-        time.sleep(2)
+        time.sleep(3)
 
     def toggle_mount(self):
         logging.info(f"Toggling mount for {self.id}")
         self.pulse(Pulse.DO_NOTHING)
         self.pulse(Pulse.TRANSFER)
         self.pulse(Pulse.DO_NOTHING)
-        time.sleep(2)
+        time.sleep(3)
 
     def transfer_latest(self):
         if not path.exists(self.origin):

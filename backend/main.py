@@ -54,7 +54,7 @@ DXL_DEVICENAME = "/dev/ttyAMA0"
 DXL_BAUDRATE = 1_000_000
 DXL_ID = 1
 DXL_SPEED = 50
-MOTOR_STEPS = 6
+MOTOR_STEPS = 2
 MOTOR_STEP_TIME = 2
 MOTOR_RESET_TIME = MOTOR_STEPS * MOTOR_STEP_TIME
 ANGLES = [round(i * (300 / (MOTOR_STEPS - 1))) for i in range(MOTOR_STEPS)]
@@ -286,15 +286,21 @@ def main():
 
             logging.info("Taking RE and RGN pictures...")
             toggle_lights(False, True, False)
+            re_camera.set_mount(True)
             re_camera.read()
+            re_was_dismounted = re_camera.set_mount(True)
+            if re_was_dismounted:
+                re_camera.read()
             photos_taken.add(photos_taken.IR, 1)
-            #update_progress(states.get(states.ANGLE), 3)
+            update_progress(states.get(states.ANGLE), 4)
             states.set(states.TRANSFERRED, False)
 
-            #toggle_lights(False, False, True)
+            rgn_camera.set_mount(True)
             rgn_camera.read()
+            rgn_was_dismounted = rgn_camera.set_mount(True)
+            if rgn_was_dismounted:
+                rgn_camera.read()
             photos_taken.add(photos_taken.UV, 1)
-            update_progress(states.get(states.ANGLE), 4)
 
             logging.info("Updating end of loop states...")
             states.set(states.ROTATED, True)
@@ -310,28 +316,18 @@ def main():
     if not states.get(states.TRANSFERRED) and (
         completed_steps or not data.get(data.RUNNING)
     ):
-        logging.info(
-            "Began transferring %d images from the cameras.", states.get(states.ANGLE)
-        )
+        logging.info("Transferring %d images.", states.get(states.ANGLE))
 
-        logging.info("Dismounting cameras")
-        re_camera.toggle_mount()
-        rgn_camera.toggle_mount()
-        time.sleep(5)
+        re_camera.set_mount(False)
+        rgn_camera.set_mount(False)
 
-        logging.info("Began transferring pictures")
-        re_camera.transfer_n(
-            states.get(states.ANGLE), states.get(states.SESSION), times["process_start"]
-        )
-        rgn_camera.transfer_n(
-            states.get(states.ANGLE), states.get(states.SESSION), times["process_start"]
-        )
+        re_camera.transfer_n(states.get(states.ANGLE), states.get(states.SESSION), times["process_start"])
+        rgn_camera.transfer_n(states.get(states.ANGLE), states.get(states.SESSION), times["process_start"])
         re_camera.clear_sd()
         rgn_camera.clear_sd()
 
-        logging.info("Mounting back cameras")
-        re_camera.toggle_mount()
-        rgn_camera.toggle_mount()
+        re_camera.set_mount(True)
+        rgn_camera.set_mount(True)
 
         update_progress(states.get(states.ANGLE), 4, True)
         states.set(states.ANGLE, 0)
