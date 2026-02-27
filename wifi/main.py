@@ -2,6 +2,7 @@ import os
 import subprocess
 import threading
 import time
+import requests
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
@@ -59,12 +60,12 @@ class AP:
 
 
 def is_wifi_connected():
-    result = run(["nmcli", "-t", "-f", "DEVICE,STATE", "device"])
-    for line in result.stdout.splitlines():
-        dev, state = line.split(":")
-        if dev == WIFI_INTERFACE and state == "connected":
-            return True
-    return False
+    try:
+        res = requests.get("https://www.google.com", timeout=5)
+        return True
+    except Exception as e:
+        logging.warning(f"Error checking connection: {e}")
+        return False
 
 
 def wait_for_wifi(timeout=20):
@@ -147,7 +148,7 @@ def main():
     print("Starting loop")
     while True:
         print("Waiting...")
-        time.sleep(2)
+        time.sleep(30)
 
         if is_wifi_connected():
             print("WiFi is connected")
@@ -159,14 +160,11 @@ def main():
             disconnected_since = time.time()
             continue
 
-        if time.time() - disconnected_since > 10:
+        if time.time() - disconnected_since > 30:
             print("Starting service")
             AP.start()
-            if not flask_started:
-                print(f"Starting server on {get_ap_ip()}:{FLASK_PORT}")
-                threading.Thread(target=run_flask, daemon=True).start()
 
 
 if __name__ == "__main__":
-    run_flask()
-    # main()
+    threading.Thread(target=run_flask, daemon=True).start()
+    main()

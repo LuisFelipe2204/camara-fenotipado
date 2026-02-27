@@ -54,7 +54,7 @@ DXL_DEVICENAME = "/dev/ttyAMA0"
 DXL_BAUDRATE = 1_000_000
 DXL_ID = 1
 DXL_SPEED = 50
-MOTOR_STEPS = 2
+MOTOR_STEPS = 10
 MOTOR_STEP_TIME = 2
 MOTOR_RESET_TIME = MOTOR_STEPS * MOTOR_STEP_TIME
 ANGLES = [round(i * (300 / (MOTOR_STEPS - 1))) for i in range(MOTOR_STEPS)]
@@ -286,23 +286,30 @@ def main():
 
             logging.info("Taking RE and RGN pictures...")
             toggle_lights(False, True, False)
-            re_camera.set_mount(True)
-            re_camera.read()
+            # Mount back the SDs if any was dismounted
             re_was_dismounted = re_camera.set_mount(True)
-            if re_was_dismounted:
-                re_camera.read()
-            photos_taken.add(photos_taken.IR, 1)
-            update_progress(states.get(states.ANGLE), 4)
-            states.set(states.TRANSFERRED, False)
-
-            rgn_camera.set_mount(True)
-            rgn_camera.read()
             rgn_was_dismounted = rgn_camera.set_mount(True)
-            if rgn_was_dismounted:
-                rgn_camera.read()
+            if re_was_dismounted or rgn_was_dismounted:
+                # If either was dismounted wait for it to mount
+                time.sleep(3)
+            # Read both cameras at the same time and wait for them to take the photo
+            re_camera.read()
+            rgn_camera.read()
+            time.sleep(3)
+            # If reading the camera dismounted the SD instead, try again
+            re_was_dismounted = re_camera.set_mount(True)
+            rgn_was_dismounted = rgn_camera.set_mount(True)
+            if re_was_dismounted or rgn_was_dismounted:
+                time.sleep(3)
+                re_camera.read() if re_was_dismounted else None
+                rgn_camera.read() if rgn_was_dismounted else None
+            # Add to the photos counter
+            photos_taken.add(photos_taken.IR, 1)
             photos_taken.add(photos_taken.UV, 1)
+            update_progress(states.get(states.ANGLE), 4)
 
             logging.info("Updating end of loop states...")
+            states.set(states.TRANSFERRED, False)
             states.set(states.ROTATED, True)
             if states.get(states.DIRECTION):
                 states.add(states.ANGLE, -1)
@@ -318,16 +325,18 @@ def main():
     ):
         logging.info("Transferring %d images.", states.get(states.ANGLE))
 
-        re_camera.set_mount(False)
-        rgn_camera.set_mount(False)
+        re_was_mounted = re_camera.set_mount(False)
+        rgn_was_mounted = rgn_camera.set_mount(False)
+        if re_was_mounted or rgn_was_mounted:
+            time.sleep(3)
 
         re_camera.transfer_n(states.get(states.ANGLE), states.get(states.SESSION), times["process_start"])
         rgn_camera.transfer_n(states.get(states.ANGLE), states.get(states.SESSION), times["process_start"])
         re_camera.clear_sd()
         rgn_camera.clear_sd()
 
-        re_camera.set_mount(True)
-        rgn_camera.set_mount(True)
+        re_was_dismounted = re_camera.set_mount(True)
+        rgn_was_dismounted = rgn_camera.set_mount(True)
 
         update_progress(states.get(states.ANGLE), 4, True)
         states.set(states.ANGLE, 0)

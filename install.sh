@@ -47,17 +47,7 @@ cd $project_name
 echo "Setting up virtual environment..."
 cp .env.example .env
 
-cd backend
-python3 -m venv env
-source env/bin/activate
-pip install --upgrade pip setuptools
-echo "Installing python requirements..."
-git clone https://github.com/ROBOTIS-GIT/DynamixelSDK.git lib/DynamixelSDK
-pip install ./lib/DynamixelSDK/python
-pip install --no-cache-dir -r requirements.txt
-deactivate
-
-cd ../wifi
+cd wifi
 python3 -m venv env-wifi
 source env-wifi/bin/activate
 pip install --upgrade pip setuptools

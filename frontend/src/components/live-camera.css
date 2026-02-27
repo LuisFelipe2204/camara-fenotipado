@@ -4,6 +4,7 @@ live-camera {
   width: auto;
   height: auto;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 live-camera img {
