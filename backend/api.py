@@ -59,76 +59,57 @@ def create(name: str) -> Flask:
 
     @app.route("/photos")
     def get_photos():
-        """Get all the photos taken on the last execution
-        Returns:
-            dict: All the photo contents stored by all cameras
-        """
+        """Get all the photos taken on the last execution"""
 
-        photos_dir = utils.get_session_dirpath(
-            config.CAM_DEST, states.get(states.SESSION)
-        )
+        photos_dir = utils.get_session_dirpath(config.CAM_DEST, states.get(states.SESSION))
         formats = (".jpg", ".jpeg", ".png")
+
         limits = {
             "RGBT": photos_taken.get(photos_taken.TOP),
             "RGB": photos_taken.get(photos_taken.SIDE),
             "RGN": photos_taken.get(photos_taken.UV),
             "RE": photos_taken.get(photos_taken.IR),
         }
+
         photos = {
             "RGBT": [],
             "RGB": [],
             "RGN": [],
             "RE": [],
         }
+
         if not states.get(states.TRANSFERRED):
             return jsonify(
                 {"photo_counts": limits, "photos": photos, "completed": False}
             )
 
-        # Get all image files and sort them newest to oldest
-        files = [
-            file for file in os.listdir(photos_dir) if file.lower().endswith(formats)
-        ]
-        files.sort(
-            key=lambda file: os.path.getctime(os.path.join(photos_dir, file)),
-            reverse=True,
-        )
+        files = [file for file in os.listdir(photos_dir) if file.lower().endswith(formats)]
+        files.sort(key=lambda file: os.path.getctime(os.path.join(photos_dir, file)), reverse=True)
 
         if len(files) == 0:
-            logging.error("Tried serving photos via API but there's none stored.")
+            logging.error("No photos stored.")
             return jsonify(
                 {"photo_counts": limits, "photos": photos, "completed": True}
             )
 
         latest_timestamp = utils.extract_photo_name(files[0])[1]
-        logging.debug(
-            "Latest timestamp found is [%s]. Found %d files.",
-            latest_timestamp,
-            len(files),
-        )
+        session = states.get(states.SESSION)
+
         for file in files:
             label, timestamp, step, ext = utils.extract_photo_name(file)
             if timestamp != latest_timestamp:
                 continue
-
             if label not in photos:
-                logging.warning("Found a file with an unrecognized label: %s", file)
                 continue
 
-            full_path = os.path.join(photos_dir, file)
-            with open(full_path, "rb") as image_file:
-                content = base64.b64encode(image_file.read()).decode("utf-8")
             utils.insert_array_padded(
                 photos[label],
                 int(step),
-                {
-                    "filename": file,
-                    "content": content,
-                    "content_type": "image/jpeg" if ext == "jpg" else "image/png",
-                },
+                {"filename": file, "src": f"/results/{str(session).zfill(8)}/{file}"},
             )
 
         return jsonify({"photo_counts": limits, "photos": photos, "completed": True})
+
 
     @app.route("/session")
     def get_session():

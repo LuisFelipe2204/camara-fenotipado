@@ -11,7 +11,7 @@ const totalPages = document.getElementById("total-pages") as HTMLSpanElement;
 const prevPage = document.getElementById("previous-page") as HTMLSpanElement;
 const nextPage = document.getElementById("next-page") as HTMLSpanElement;
 
-type Response = { filename: string; content: string; content_type: string };
+type Response = { filename: string; src: string };
 type Data = {
   completed: boolean;
   photo_counts: { RGB: number; RGBT: number; RE: number; RGN: number };
@@ -46,7 +46,7 @@ class Result {
   static mapResults(response: Response) {
     return {
       title: response ? response.filename : "",
-      image: response ? `data:${response.content_type};base64,${response.content}` : "",
+      image: response ? response.src : "",
     };
   }
 }
@@ -89,12 +89,6 @@ document.addEventListener("runningFinished", async () => {
 
   Object.values(results).forEach((result) => result.display());
 });
-
-// content.addEventListener("click", () => {
-//   Result.index = (Result.index + 1) % (Result.max || 1);
-//   currentPages.textContent = String(Result.index + 1);
-//   Object.values(results).forEach((result) => result.display());
-// });
 
 resultPopup.addEventListener("click", (ev) => {
   const content = resultPopup.querySelector(".popup-content") as HTMLDivElement;

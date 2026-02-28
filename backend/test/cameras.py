@@ -16,8 +16,8 @@ import utils
 from modules.survey3 import Survey3
 
 # Pin I/O
-RE_CAMERA_PIN = digitalio.DigitalInOut(board.D24)
-RGN_CAMERA_PIN = digitalio.DigitalInOut(board.D23)
+RE_CAMERA_PIN = digitalio.DigitalInOut(board.D23)
+RGN_CAMERA_PIN = digitalio.DigitalInOut(board.D24)
 
 # Set pin directions
 RE_CAMERA_PIN.direction = digitalio.Direction.OUTPUT
@@ -76,6 +76,7 @@ def mount_dismount():
     mount = not mount
     print("Mounting RE" if mount else "Dismounting RE")
     re_camera.set_mount(mount)
+    time.sleep(1)
     # re_camera.toggle_mount()
     print("Mounting RGN" if mount else "Dismounting RGN")
     # rgn_camera.toggle_mount()

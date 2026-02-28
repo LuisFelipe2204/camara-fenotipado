@@ -49,17 +49,17 @@ for pin in [START_BTN, STOP_BTN, DIR_SWITCH]:
 CAM_RGB_INDEX = 2
 CAM_RGBT_INDEX = 0
 CONNECTION_URL = f"http://127.0.0.1:{config.WIFI_PORT}/active"
-CAM_SRC_RGN = "/media/sise/0000-0001/DCIM/Photo"
-CAM_SRC_RE = "/media/sise/0000-00011/DCIM/Photo"
+CAM_SRC_RGN = "/media/sise/0000-00011/DCIM/Photo"
+CAM_SRC_RE = "/media/sise/0000-0001/DCIM/Photo"
 CAM_DEST = config.CAM_DEST
 DXL_DEVICENAME = "/dev/ttyAMA0"
 DXL_BAUDRATE = 1_000_000
 DXL_ID = 1
 DXL_SPEED = 50
-MOTOR_STEPS = data.get(data.PHOTO_AMOUNT)
-MOTOR_STEP_TIME = lambda: 2 # TODO: Measure
-MOTOR_RESET_TIME = lambda: MOTOR_STEPS * MOTOR_STEP_TIME
-ANGLES = lambda: [round(i * (300 / (MOTOR_STEPS - 1))) for i in range(MOTOR_STEPS)]
+MOTOR_STEPS = lambda: int(data.get(data.PHOTO_AMOUNT) or 11)
+MOTOR_STEP_TIME = lambda: 6 / max(MOTOR_STEPS() - 1, 1) + 0.5
+MOTOR_RESET_TIME = lambda: (MOTOR_STEPS() * MOTOR_STEP_TIME())
+ANGLES = lambda: [round(i * (300 / (MOTOR_STEPS() - 1))) for i in range(MOTOR_STEPS())]
 SENSOR_READ_TIME = 0.5
 DISPLAY_UPDATE_TIME = 0.2
 WIFI_CHECK_TIME = 5
@@ -71,7 +71,7 @@ Ax12.BAUDRATE = DXL_BAUDRATE
 Ax12.connect()
 
 # Library initialization
-data.init_values(DIR_SWITCH, MOTOR_STEPS)
+data.init_values(DIR_SWITCH, MOTOR_STEPS())
 dxl = Ax12(DXL_ID)
 dxl.set_moving_speed(DXL_SPEED)
 dxl.set_goal_position(0)
@@ -142,7 +142,7 @@ def read_sensor_data():
         data.set(data.WHITE_LUX, round(bh.lux, 1) if bh else -1)
         data.set(data.IR_LUX, round(tsl.infrared, 1) if tsl else -1)
         data.set(data.UV_LUX, round(ltr.uvi, 1) if ltr else -1)
-        data.set(data.ANGLE, pot.value)
+        # data.set(data.ANGLE, pot.value)
         time.sleep(SENSOR_READ_TIME)
 
 
@@ -207,12 +207,12 @@ def update_progress(angle_index: int, prev_camera: int, completed=False):
     step = (
         angle_index
         if not states.get(states.DIRECTION)
-        else MOTOR_STEPS - angle_index - 1
+        else MOTOR_STEPS() - angle_index - 1
     )
     data.set(
         data.PROGRESS,
         round(
-            ((step / MOTOR_STEPS) + (prev_camera / TOTAL_CAMERAS) / MOTOR_STEPS) * 99
+            ((step / MOTOR_STEPS()) + (prev_camera / TOTAL_CAMERAS) / MOTOR_STEPS()) * 99
         ),
     )
     logging.info("Changed progress to %d%%", data.get(data.PROGRESS))
@@ -242,10 +242,10 @@ def move_motor_next():
         "Began moving towards %d° (%d in bytes).", angle, utils.degree_to_byte(angle)
     )
     dxl.set_goal_position(utils.degree_to_byte(angle))
-    # data.set(data.ANGLE, angle)
+    data.set(data.ANGLE, angle)
 
     times["rotation_start"] = time.time()
-    if (states.get(states.ANGLE) == 0 or states.get(states.ANGLE) == MOTOR_STEPS - 1) and data.get(data.PROGRESS) == 0:
+    if (states.get(states.ANGLE) == 0 or states.get(states.ANGLE) == MOTOR_STEPS() - 1) and data.get(data.PROGRESS) == 0:
         time.sleep(MOTOR_RESET_TIME())
         times["process_start"] = time.time()
 
@@ -268,7 +268,7 @@ def main():
             )
 
         if time.time() - times["rotation_start"] > MOTOR_STEP_TIME():
-            logging.info("Step %d / %d started.", states.get(states.ANGLE), MOTOR_STEPS)
+            logging.info("Step %d / %d started.", states.get(states.ANGLE), MOTOR_STEPS())
 
             toggle_lights(True, False, False)
             logging.info("Taking RGB Side picture...")
@@ -299,16 +299,16 @@ def main():
             rgn_was_dismounted = rgn_camera.set_mount(True)
             if re_was_dismounted or rgn_was_dismounted:
                 # If either was dismounted wait for it to mount
-                time.sleep(3)
+                time.sleep(2)
             # Read both cameras at the same time and wait for them to take the photo
             re_camera.read()
             rgn_camera.read()
-            time.sleep(3)
+            time.sleep(2)
             # If reading the camera dismounted the SD instead, try again
             re_was_dismounted = re_camera.set_mount(True)
             rgn_was_dismounted = rgn_camera.set_mount(True)
             if re_was_dismounted or rgn_was_dismounted:
-                time.sleep(3)
+                time.sleep(2)
                 re_camera.read() if re_was_dismounted else None
                 rgn_camera.read() if rgn_was_dismounted else None
             # Add to the photos counter
@@ -326,7 +326,7 @@ def main():
             toggle_lights(False, False, False)
 
     completed_steps = (
-        states.get(states.ANGLE) >= MOTOR_STEPS or states.get(states.ANGLE) < 0
+        states.get(states.ANGLE) >= MOTOR_STEPS() or states.get(states.ANGLE) < 0
     )
     if not states.get(states.TRANSFERRED) and (
         completed_steps or not data.get(data.RUNNING)
@@ -336,7 +336,12 @@ def main():
         re_was_mounted = re_camera.set_mount(False)
         rgn_was_mounted = rgn_camera.set_mount(False)
         if re_was_mounted or rgn_was_mounted:
-            time.sleep(3)
+            time.sleep(2)
+        re_was_mounted = re_camera.set_mount(False)
+        rgn_was_mounted = rgn_camera.set_mount(False)
+        if re_was_mounted or rgn_was_mounted:
+            time.sleep(2)
+        time.sleep(60)
 
         re_camera.transfer_n(states.get(states.ANGLE), states.get(states.SESSION), times["process_start"])
         rgn_camera.transfer_n(states.get(states.ANGLE), states.get(states.SESSION), times["process_start"])

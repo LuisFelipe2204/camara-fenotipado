@@ -22,7 +22,7 @@ def generate_photo_name(prefix: str, timestamp: float, step: int) -> str:
         All the data stored in a string filename (PNG) "RGB-20251119_013323-4.png"
     """
     time_str = time.strftime("%Y%m%d_%H%M%S", time.localtime(timestamp))
-    return f"{prefix}-{time_str}-{step}.png"
+    return f"{prefix}-{time_str}-{step}.jpg"
 
 
 def extract_photo_name(name: str):
