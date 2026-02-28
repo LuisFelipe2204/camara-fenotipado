@@ -18,22 +18,23 @@ import "./results";
 import "./popup";
 
 const FETCH_INTERVAL = 500;
+const SIMULATE = false;
 setInterval(async () => {
-  // const res = await fetch("/api/dashboard");
-  const res = {
-    ok: true,
-    json: () => ({
-      temp: Math.random() * 50,
-      white_lux: Math.random() * 1000,
-      ir_lux: Math.random() * 1000,
-      uv_lux: Math.random() * 14,
-      hum: Math.random() * 100,
-      angle: Math.random() * 300,
-      progress: Math.random() * 100,
-      running: Math.random() > 0.5 ? 0 : 0,
-      photo_amount: 10,
-    }),
-  };
+  const res = SIMULATE ?
+    {
+      ok: true,
+      json: () => ({
+        temp: Math.random() * 50,
+        white_lux: Math.random() * 1000,
+        ir_lux: Math.random() * 1000,
+        uv_lux: Math.random() * 14,
+        hum: Math.random() * 100,
+        angle: Math.random() * 300,
+        progress: Math.random() * 100,
+        running: Math.random() > 0.5 ? 0 : 0,
+        photo_amount: 10,
+      }),
+    } : await fetch("/api/dashboard");
   if (!res.ok) {
     console.error("Error fetching dashboard data.", res);
     return;

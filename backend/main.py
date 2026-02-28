@@ -10,6 +10,8 @@ import adafruit_bh1750
 import adafruit_dht
 import adafruit_ltr390
 import adafruit_tsl2561
+import adafruit_ads1x15.ads1115 as ADS
+from adafruit_ads1x15.analog_in import AnalogIn
 import board
 import busio
 import digitalio
@@ -75,6 +77,11 @@ dxl.set_moving_speed(DXL_SPEED)
 dxl.set_goal_position(0)
 dht = adafruit_dht.DHT22(DHT_PIN, use_pulseio=False)
 try:
+    pot = AnalogIn(ADS.ADS1115(i2c), ADS.P0)
+except Exception as e:
+    logging.warning("Potentiometer with ADS1115 not recognized. %s", e)
+    pot = None
+try:
     display = sh1106(lumaI2C(address=0x3C))
 except Exception as e:
     logging.warning("Display SH1106 not recognized in I2C bus on address 0x3C. %s", e)
@@ -135,6 +142,7 @@ def read_sensor_data():
         data.set(data.WHITE_LUX, round(bh.lux, 1) if bh else -1)
         data.set(data.IR_LUX, round(tsl.infrared, 1) if tsl else -1)
         data.set(data.UV_LUX, round(ltr.uvi, 1) if ltr else -1)
+        data.set(data.ANGLE, pot.value)
         time.sleep(SENSOR_READ_TIME)
 
 
@@ -234,7 +242,7 @@ def move_motor_next():
         "Began moving towards %d° (%d in bytes).", angle, utils.degree_to_byte(angle)
     )
     dxl.set_goal_position(utils.degree_to_byte(angle))
-    data.set(data.ANGLE, angle)
+    # data.set(data.ANGLE, angle)
 
     times["rotation_start"] = time.time()
     if (states.get(states.ANGLE) == 0 or states.get(states.ANGLE) == MOTOR_STEPS - 1) and data.get(data.PROGRESS) == 0:
