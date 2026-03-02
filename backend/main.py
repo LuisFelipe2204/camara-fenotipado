@@ -54,10 +54,10 @@ DXL_DEVICENAME = "/dev/ttyAMA0"
 DXL_BAUDRATE = 1_000_000
 DXL_ID = 1
 DXL_SPEED = 50
-MOTOR_STEPS = 10
-MOTOR_STEP_TIME = 2
-MOTOR_RESET_TIME = MOTOR_STEPS * MOTOR_STEP_TIME
-ANGLES = [round(i * (300 / (MOTOR_STEPS - 1))) for i in range(MOTOR_STEPS)]
+MOTOR_STEPS = data.get(data.PHOTO_AMOUNT)
+MOTOR_STEP_TIME = lambda: 2 # TODO: Measure
+MOTOR_RESET_TIME = lambda: MOTOR_STEPS * MOTOR_STEP_TIME
+ANGLES = lambda: [round(i * (300 / (MOTOR_STEPS - 1))) for i in range(MOTOR_STEPS)]
 SENSOR_READ_TIME = 0.5
 DISPLAY_UPDATE_TIME = 0.2
 WIFI_CHECK_TIME = 5
@@ -229,7 +229,7 @@ def move_motor_next():
     """
     dxl.set_moving_speed(DXL_SPEED)
     logging.info(f"{states.get(states.ANGLE)}")
-    angle = ANGLES[states.get(states.ANGLE)]
+    angle = ANGLES()[states.get(states.ANGLE)]
     logging.info(
         "Began moving towards %d° (%d in bytes).", angle, utils.degree_to_byte(angle)
     )
@@ -238,7 +238,7 @@ def move_motor_next():
 
     times["rotation_start"] = time.time()
     if (states.get(states.ANGLE) == 0 or states.get(states.ANGLE) == MOTOR_STEPS - 1) and data.get(data.PROGRESS) == 0:
-        time.sleep(MOTOR_RESET_TIME)
+        time.sleep(MOTOR_RESET_TIME())
         times["process_start"] = time.time()
 
 
@@ -259,7 +259,7 @@ def main():
                 states.ROTATED, False
             )
 
-        if time.time() - times["rotation_start"] > MOTOR_STEP_TIME:
+        if time.time() - times["rotation_start"] > MOTOR_STEP_TIME():
             logging.info("Step %d / %d started.", states.get(states.ANGLE), MOTOR_STEPS)
 
             toggle_lights(True, False, False)

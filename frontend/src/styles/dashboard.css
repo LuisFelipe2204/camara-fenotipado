@@ -26,12 +26,19 @@ main {
   grid-row: span 4;
 }
 
-.widget:has(#angle),
+.widget:has(#angle) {
+  grid-column: span 2;
+  grid-row: span 3;
+}
 .widget:has(#progress) {
   grid-column: span 4;
   grid-row: span 3;
 }
 
+.widget:has(#photo_amount) {
+  grid-column: span 2;
+  grid-row: span 3;
+}
 .widget:has(#running) {
   grid-column: span 2;
   grid-row: span 3;

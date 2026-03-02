@@ -41,11 +41,14 @@ class Data(DataManager):
     RUNNING = "running"
     ANGLE = "angle"
     PROGRESS = "progress"
+    PHOTO_AMOUNT = "photo_amount"
     initialized = False
 
     def set(self, key, value, use_value: bool = True):
         if key == Data.RUNNING and value == 1 and not self.get(Data.RUNNING):
             self.run_pre_session()
+        if key == Data.PHOTO_AMOUNT and self.get(Data.RUNNING) == 1:
+            return True
         return super().set(key, value, use_value)
 
     def init_values(self, dir_switch: digitalio.DigitalInOut, motor_steps: int):
@@ -77,6 +80,7 @@ data = Data(
         Data.RUNNING: False,
         Data.ANGLE: 0,
         Data.PROGRESS: 0,
+        Data.PHOTO_AMOUNT: 11,
     }
 )
 

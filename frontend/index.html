@@ -96,14 +96,12 @@
           </div>
         </div>
       </div>
-      
+
       <!-- Confirmation popup to turn off the system -->
       <div class="window-popup text-popup hidden" id="turnoff-popup">
         <div class="popup-content">
           <h2 class="popup-title">Apagar el sistema</h2>
-          <div class="popup-text">
-            ¿Desea apagar el sistema?
-          </div>
+          <div class="popup-text">¿Desea apagar el sistema?</div>
           <div class="confirmation-buttons">
             <button class="primary-btn">Confirmar</button>
             <button class="secondary-btn">Cancelar</button>
@@ -149,6 +147,10 @@
           <div class="widget">
             <span class="widget-title">Progreso</span>
             <widget-bar id="progress" suffix="%" color="#2AAB1F" />
+          </div>
+          <div class="widget">
+            <span class="widget-title">Fotos</span>
+            <widget-picker id="photo_amount" color="#000" />
           </div>
           <div class="widget">
             <widget-button id="running" on="Encendido" off="Apagado" />
@@ -369,6 +371,14 @@
         <button class="object">
           <span class="value"></span>
         </button>
+      </template>
+      <!-- Number picker -->
+      <template id="temp-picker">
+        <div class="picker-wrapper object">
+          <button class="sub">&lt;</button>
+          <span class="value"></span>
+          <button class="add">&gt;</button>
+        </div>
       </template>
     </div>
     <script type="module" src="/src/main.ts"></script>

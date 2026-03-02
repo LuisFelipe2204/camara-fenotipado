@@ -11,6 +11,7 @@ import "./components/widget-gauge";
 import "./components/widget-value";
 import "./components/widget-bar";
 import "./components/widget-button";
+import "./components/widget-picker";
 
 import "./controls";
 import "./results";
@@ -18,7 +19,21 @@ import "./popup";
 
 const FETCH_INTERVAL = 500;
 setInterval(async () => {
-  const res = await fetch("/api/dashboard");
+  // const res = await fetch("/api/dashboard");
+  const res = {
+    ok: true,
+    json: () => ({
+      temp: Math.random() * 50,
+      white_lux: Math.random() * 1000,
+      ir_lux: Math.random() * 1000,
+      uv_lux: Math.random() * 14,
+      hum: Math.random() * 100,
+      angle: Math.random() * 300,
+      progress: Math.random() * 100,
+      running: Math.random() > 0.5 ? 0 : 0,
+      photo_amount: 10,
+    }),
+  };
   if (!res.ok) {
     console.error("Error fetching dashboard data.", res);
     return;

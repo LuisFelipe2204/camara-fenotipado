@@ -118,9 +118,29 @@
   color: white;
   font-weight: 700;
 }
+.page-display span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .page-control {
+  cursor: pointer;
   flex: 1 0 0;
   font-weight: 700;
+  font-size: 1.5rem;
+  transition: 150ms ease-in-out;
+  border-radius: 100vmax;
+}
+#previous-page {
+  margin-right: .5rem;
+  border-right: 2px solid #ffffffa0;
+}
+#next-page {
+  margin-left: .5rem;
+  border-left: 2px solid #ffffffa0;
+}
+.page-control:hover {
+  background-color: #ffffff40;
 }
 
 .loader {
