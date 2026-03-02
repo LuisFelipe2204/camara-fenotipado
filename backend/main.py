@@ -4,6 +4,7 @@ import threading
 import time
 import logging
 import config
+import requests
 
 import adafruit_bh1750
 import adafruit_dht
@@ -28,9 +29,9 @@ i2c = busio.I2C(board.SCL, board.SDA)
 DHT_PIN = board.D26
 RE_CAMERA = digitalio.DigitalInOut(board.D23)
 RGN_CAMERA = digitalio.DigitalInOut(board.D24)
-WHITE_LIGHT = digitalio.DigitalInOut(board.D17)
+WHITE_LIGHT = digitalio.DigitalInOut(board.D27)
 UV_LIGHT = digitalio.DigitalInOut(board.D22)
-IR_LIGHT = digitalio.DigitalInOut(board.D27)
+IR_LIGHT = digitalio.DigitalInOut(board.D17)
 START_BTN = digitalio.DigitalInOut(board.D5)
 STOP_BTN = digitalio.DigitalInOut(board.D6)
 DIR_SWITCH = digitalio.DigitalInOut(board.D12)
@@ -43,8 +44,9 @@ for pin in [START_BTN, STOP_BTN, DIR_SWITCH]:
     pin.pull = digitalio.Pull.UP
 
 # Constants
-CAM_RGB_INDEX = 0
-CAM_RGBT_INDEX = 2
+CAM_RGB_INDEX = 2
+CAM_RGBT_INDEX = 0
+CONNECTION_URL = f"http://127.0.0.1:{config.WIFI_PORT}/active"
 CAM_SRC_RGN = "/media/sise/0000-0001/DCIM/Photo"
 CAM_SRC_RE = "/media/sise/0000-00011/DCIM/Photo"
 CAM_DEST = config.CAM_DEST
@@ -52,12 +54,13 @@ DXL_DEVICENAME = "/dev/ttyAMA0"
 DXL_BAUDRATE = 1_000_000
 DXL_ID = 1
 DXL_SPEED = 50
-MOTOR_STEPS = 6
-MOTOR_STEP_TIME = 0.1
+MOTOR_STEPS = 10
+MOTOR_STEP_TIME = 2
 MOTOR_RESET_TIME = MOTOR_STEPS * MOTOR_STEP_TIME
 ANGLES = [round(i * (300 / (MOTOR_STEPS - 1))) for i in range(MOTOR_STEPS)]
-SENSOR_READ_TIME = 1
+SENSOR_READ_TIME = 0.5
 DISPLAY_UPDATE_TIME = 0.2
+WIFI_CHECK_TIME = 5
 TOTAL_CAMERAS = 4
 
 # Class configuration
@@ -73,8 +76,8 @@ dxl.set_goal_position(0)
 dht = adafruit_dht.DHT22(DHT_PIN, use_pulseio=False)
 try:
     display = sh1106(lumaI2C(address=0x3C))
-except:
-    logging.warning("Display SH1106 not recognized in I2C bus on address 0x3C.")
+except Exception as e:
+    logging.warning("Display SH1106 not recognized in I2C bus on address 0x3C. %s", e)
     display = None
 display_font = ImageFont.load_default()
 
@@ -101,7 +104,8 @@ rgn_camera = Survey3(RGN_CAMERA, "RGN", CAM_SRC_RGN, CAM_DEST)
 
 app = api.create(__name__)
 
-# Time variables
+# Variables
+ap_conn = {"active": False, "ip": "", "port": 0}
 times = {"rotation_start": 0.0, "sensor_read": 0.0, "process_start": 0.0}
 
 
@@ -114,15 +118,17 @@ def start_api():
 def read_sensor_data():
     """Read data from the sensors and update the global data dictionary."""
     has_dht = True
+    dht_read = 0
     while not stop_event.is_set():
-        if not has_dht:
-            break
-
         try:
             dht.measure()
-        except RuntimeError as e:
+            if dht.temperature is None or dht.humidity is None:
+                raise Exception("Succeeded reading. Read None")
+            has_dht = True
+        except Exception as e:
+            if has_dht:
+                logging.warning("Sensor DHT11 not recognized. %s", e)
             has_dht = False
-            logging.error("Sensor DHT11 not recognized. %s", e)
 
         data.set(data.TEMP, dht.temperature, has_dht)
         data.set(data.HUM, dht.humidity, has_dht)
@@ -130,6 +136,27 @@ def read_sensor_data():
         data.set(data.IR_LUX, round(tsl.infrared, 1) if tsl else -1)
         data.set(data.UV_LUX, round(ltr.uvi, 1) if ltr else -1)
         time.sleep(SENSOR_READ_TIME)
+
+
+def connection_check():
+    has_connection_server = True
+    while not stop_event.is_set():
+        try:
+            res = requests.get(CONNECTION_URL)
+            has_connection_server = True
+        except Exception as e:
+            if has_connection_server:
+                logging.warning(f"Error checking connection: {e}")
+                has_connection_server = False
+            time.sleep(WIFI_CHECK_TIME)
+            continue
+
+        if res.status_code == 200:
+            data = res.json()
+            ap_conn["active"] = data["active_ap"]
+            ap_conn["ip"] = data["ip"]
+            ap_conn["port"] = data["port"]
+        time.sleep(WIFI_CHECK_TIME)
 
 
 def update_display():
@@ -142,14 +169,14 @@ def update_display():
         field_mode = bh is None and tsl is None and ltr is None
         image = Image.new("1", (display.width, display.height))
         draw = ImageDraw.Draw(image)
-        line = display.height // 4
 
         content = [
-            f"Modo {'CAMPO' if field_mode else 'LAB'}",
-            f"Giro {'IZQUIERDA' if states.get(states.DIRECTION) else 'DERECHA'}",
-            f"Estado {'ON' if data.get(data.RUNNING) else 'OFF'}",
-            f"Progreso {data.get(data.PROGRESS)}%",
+            f"AP: {config.AP_SSID if ap_conn['active'] else 'OFF'}",
+            f"http://{ap_conn['ip']}:{ap_conn['port']}/" if ap_conn['active'] else "NO AP URL (OK)",
+            f"Sentido: {'ANTIHORARIO' if states.get(states.DIRECTION) else 'HORARIO'}",
+            f"Estado: {'ON' if data.get(data.RUNNING) else 'OFF'} | {data.get(data.PROGRESS)}%",
         ]
+        line = display.height // len(content)
 
         for i in range(len(content)):
             draw.text((0, line * i), content[i], font=display_font, fill=255)
@@ -193,13 +220,15 @@ def toggle_lights(state_white: bool, state_ir: bool, state_uv: bool):
     WHITE_LIGHT.value = state_white
     IR_LIGHT.value = state_ir
     UV_LIGHT.value = state_uv
-    time.sleep(0.1)
+    time.sleep(1)
 
 
 def move_motor_next():
     """Order the motor to move to the next angle, update roation start time
     If it's moving to the starting position block the main thread and update starting time
     """
+    dxl.set_moving_speed(DXL_SPEED)
+    logging.info(f"{states.get(states.ANGLE)}")
     angle = ANGLES[states.get(states.ANGLE)]
     logging.info(
         "Began moving towards %d° (%d in bytes).", angle, utils.degree_to_byte(angle)
@@ -208,8 +237,8 @@ def move_motor_next():
     data.set(data.ANGLE, angle)
 
     times["rotation_start"] = time.time()
-    if states.get(states.ANGLE) == 0:
-        time.sleep(MOTOR_RESET_TIME)  # Ensures the motor reaches starting position
+    if (states.get(states.ANGLE) == 0 or states.get(states.ANGLE) == MOTOR_STEPS - 1) and data.get(data.PROGRESS) == 0:
+        time.sleep(MOTOR_RESET_TIME)
         times["process_start"] = time.time()
 
 
@@ -224,16 +253,17 @@ def main():
         data.set(data.RUNNING, new_start and not states.get(states.START))
 
     if data.get(data.RUNNING):
-        if states.get(states.ANGLE):
+        if states.get(states.ROTATED):
             move_motor_next()
             states.set(
                 states.ROTATED, False
-            )  # Rotation just started so it hasn't finished yet
+            )
 
         if time.time() - times["rotation_start"] > MOTOR_STEP_TIME:
             logging.info("Step %d / %d started.", states.get(states.ANGLE), MOTOR_STEPS)
 
             toggle_lights(True, False, False)
+            logging.info("Taking RGB Side picture...")
             frame = side_cam.get_frame()
             photos_taken.add(photos_taken.SIDE, 1)
             if frame is not None:
@@ -242,6 +272,7 @@ def main():
                 )
             update_progress(states.get(states.ANGLE), 1)
 
+            logging.info("Taking RGB Top picture...")
             frame_top = top_cam.get_frame()
             photos_taken.add(photos_taken.TOP, 1)
             if frame_top is not None:
@@ -253,18 +284,32 @@ def main():
                 )
             update_progress(states.get(states.ANGLE), 2)
 
+            logging.info("Taking RE and RGN pictures...")
             toggle_lights(False, True, False)
+            # Mount back the SDs if any was dismounted
+            re_was_dismounted = re_camera.set_mount(True)
+            rgn_was_dismounted = rgn_camera.set_mount(True)
+            if re_was_dismounted or rgn_was_dismounted:
+                # If either was dismounted wait for it to mount
+                time.sleep(3)
+            # Read both cameras at the same time and wait for them to take the photo
             re_camera.read()
-            photos_taken.add(photos_taken.IR, 1)
-            update_progress(states.get(states.ANGLE), 3)
-            # At least one multispectral camera took a picture
-            states.set(states.TRANSFERRED, False)
-
-            toggle_lights(False, False, True)
             rgn_camera.read()
+            time.sleep(3)
+            # If reading the camera dismounted the SD instead, try again
+            re_was_dismounted = re_camera.set_mount(True)
+            rgn_was_dismounted = rgn_camera.set_mount(True)
+            if re_was_dismounted or rgn_was_dismounted:
+                time.sleep(3)
+                re_camera.read() if re_was_dismounted else None
+                rgn_camera.read() if rgn_was_dismounted else None
+            # Add to the photos counter
+            photos_taken.add(photos_taken.IR, 1)
             photos_taken.add(photos_taken.UV, 1)
             update_progress(states.get(states.ANGLE), 4)
 
+            logging.info("Updating end of loop states...")
+            states.set(states.TRANSFERRED, False)
             states.set(states.ROTATED, True)
             if states.get(states.DIRECTION):
                 states.add(states.ANGLE, -1)
@@ -278,36 +323,26 @@ def main():
     if not states.get(states.TRANSFERRED) and (
         completed_steps or not data.get(data.RUNNING)
     ):
-        logging.info(
-            "Began transferring %d images from the cameras.", states.get(states.ANGLE)
-        )
+        logging.info("Transferring %d images.", states.get(states.ANGLE))
 
-        # Transfer both multispectral cameras at the same time
-        logging.info("Dismounting cameras")
-        re_camera.toggle_mount()
-        rgn_camera.toggle_mount()
-        time.sleep(5)
+        re_was_mounted = re_camera.set_mount(False)
+        rgn_was_mounted = rgn_camera.set_mount(False)
+        if re_was_mounted or rgn_was_mounted:
+            time.sleep(3)
 
-        logging.info("Began transferring pictures")
-        re_camera.transfer_n(
-            states.get(states.ANGLE), states.get(states.SESSION), times["process_start"]
-        )
-        rgn_camera.transfer_n(
-            states.get(states.ANGLE), states.get(states.SESSION), times["process_start"]
-        )
+        re_camera.transfer_n(states.get(states.ANGLE), states.get(states.SESSION), times["process_start"])
+        rgn_camera.transfer_n(states.get(states.ANGLE), states.get(states.SESSION), times["process_start"])
         re_camera.clear_sd()
         rgn_camera.clear_sd()
 
-        logging.info("Mounting back cameras")
-        re_camera.toggle_mount()
-        rgn_camera.toggle_mount()
+        re_was_dismounted = re_camera.set_mount(True)
+        rgn_was_dismounted = rgn_camera.set_mount(True)
 
         update_progress(states.get(states.ANGLE), 4, True)
         states.set(states.ANGLE, 0)
         states.set(states.TRANSFERRED, True)
         data.set(data.RUNNING, False)
 
-    # Update states
     states.set(states.START, new_start)
     states.set(states.STOP, new_stop)
 
@@ -318,10 +353,12 @@ if __name__ == "__main__":
     api_thread = threading.Thread(target=start_api, daemon=True)
     sensor_thread = threading.Thread(target=read_sensor_data, daemon=True)
     display_thread = threading.Thread(target=update_display, daemon=True)
+    connection_thread = threading.Thread(target=connection_check, daemon=True)
     try:
         api_thread.start()
         sensor_thread.start()
         display_thread.start()
+        connection_thread.start()
         side_cam.start()
         top_cam.start()
         while True:
@@ -333,6 +370,7 @@ if __name__ == "__main__":
         stop_event.set()
         sensor_thread.join()
         display_thread.join()
+        connection_thread.join()
         side_cam.release()
         top_cam.release()
         dxl.set_torque_enable(0)

@@ -26,3 +26,9 @@ html {
 main {
   flex: 1 1 0;
 }
+
+.content-container {
+  display: flex;
+  flex: 1 1 0;
+  max-height: calc(100% - 4.25rem);
+}

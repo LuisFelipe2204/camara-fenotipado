@@ -2,7 +2,7 @@ import threading
 
 import digitalio
 
-from backend import config, utils
+import config, utils
 
 
 class DataManager:
@@ -21,8 +21,8 @@ class DataManager:
             return self.is_key(key)
 
     def add(self, key, value):
-        with self.lock:
-            return self.set(key, self.get(key) + value)
+        original = self.get(key)
+        return self.set(key, original + value)
 
     def is_key(self, key: str):
         return key in self.data
@@ -54,12 +54,13 @@ class Data(DataManager):
         self.initialized = True
 
     def run_pre_session(self):
+        print("Presession")
         if not self.initialized:
             return
         states.set(states.SESSION, utils.get_next_numeric_subdir(config.CAM_DEST))
         states.set(
             states.DIRECTION,
-            utils.debounce_button(self.dir_switch, states.get(states.DIRECTION)),
+            0 #utils.debounce_button(self.dir_switch, states.get(states.DIRECTION)),
         )
         data.set(data.PROGRESS, 0)
         if states.get(states.DIRECTION):

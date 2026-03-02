@@ -17,16 +17,17 @@ from modules.ax12 import Ax12
 
 # Pin I/O
 i2c = busio.I2C(board.SCL, board.SDA)
-DHT_PIN = board.D26
-LED_W = digitalio.DigitalInOut(board.D17)
+DHT_PIN = board.D7
+LED_W = digitalio.DigitalInOut(board.D27)
 LED_R = digitalio.DigitalInOut(board.D22)
-LED_U = digitalio.DigitalInOut(board.D27)
+LED_U = digitalio.DigitalInOut(board.D17)
 SWITCH_PIN = digitalio.DigitalInOut(board.D5)
 BUTTON_PIN = digitalio.DigitalInOut(board.D6)
 
 # Set pin directions
 for pin in [LED_W, LED_R, LED_U]:
     pin.direction = digitalio.Direction.OUTPUT
+    pin.value = False
 
 for pin in [SWITCH_PIN, BUTTON_PIN]:
     pin.direction = digitalio.Direction.INPUT
@@ -39,7 +40,7 @@ Ax12.connect()
 
 # Constants
 MOTOR_ID = 1
-MOTOR_SPEED = 50
+MOTOR_SPEED = 100
 SEPARATOR = "="
 
 # Variables
@@ -49,6 +50,9 @@ tsl2561 = adafruit_tsl2561.TSL2561(i2c)
 dht = adafruit_dht.DHT22(DHT_PIN, use_pulseio=False)
 dxl = Ax12(MOTOR_ID)
 dxl.set_moving_speed(MOTOR_SPEED)
+led_w = False
+led_r = False
+led_u = False
 
 
 def read_bh1750():
@@ -73,7 +77,6 @@ def read_tsl2561():
         print(f"Light Level: {ir:.2f} lux")
     else:
         print("Failed to read from TSL2561 sensor!")
-    time.sleep(2)
 
 
 def read_dht():
@@ -89,6 +92,25 @@ def read_dht():
     else:
         print("Failed to read from DHT sensor!")
 
+def toggle_white():
+    global led_w
+    led_w = not led_w
+    LED_W.value = led_w
+    print(f"White LEDs are {led_w}")
+
+
+def toggle_ir():
+    global led_r
+    led_r = not led_r
+    LED_R.value = led_r
+    print(f"IR LEDs are {led_r}")
+
+
+def toggle_uv():
+    global led_u
+    led_u = not led_u
+    LED_U.value = led_u
+    print(f"UV LEDs are {led_u}")
 
 def toggle_state(pin, message):
     pin.value = not pin.value
@@ -105,14 +127,14 @@ def move_dynamixel():
 cursor = 0
 commands = [
     {"name": "BH1750 | White Light", "run": read_bh1750},
-    {"name": "LTR390 | IR Light", "run": read_ltr390},
-    {"name": "TSL2561 | UV Light", "run": read_tsl2561},
+    {"name": "TSL2561 | IR Light", "run": read_tsl2561},
+    {"name": "LTR390 | UV Light", "run": read_ltr390},
     {
         "name": "White LEDs",
-        "run": lambda: toggle_state(LED_W, "White LEDs are {value}"),
+        "run": lambda: toggle_white(),
     },
-    {"name": "IR LEDs", "run": lambda: toggle_state(LED_R, "IR LEDs are {value}")},
-    {"name": "UV LEDs", "run": lambda: toggle_state(LED_U, "UV LEDs are {value}")},
+    {"name": "IR LEDs", "run": lambda: toggle_ir()},
+    {"name": "UV LEDs", "run": lambda: toggle_uv()},
     {"name": "Button", "run": lambda: print(f"Button is {BUTTON_PIN.value}")},
     {"name": "Switch", "run": lambda: print(f"Switch is {SWITCH_PIN.value}")},
     {"name": "DHT22 | Temperature & Humidity", "run": read_dht},

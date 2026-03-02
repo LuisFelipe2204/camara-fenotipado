@@ -8,7 +8,7 @@ import cv2
 from cv2.typing import MatLike
 import numpy as np
 import utils
-from backend.data import states
+from data import states
 import os
 
 CAMERA_WIDTH = 320

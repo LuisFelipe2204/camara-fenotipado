@@ -5,8 +5,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-API_PORT = int(os.getenv("API_PORT", "5000"))
-CAM_DEST = os.getenv("CAM_DEST", "~/")
+API_PORT = 5000 # int(os.getenv("API_PORT", "5000"))
+CAM_DEST = "/results" # os.getenv("CAM_DEST", "/home/sise/Desktop/Fenotipado")
+AP_SSID = os.environ["AP_SSID"]
+WIFI_PORT = int(os.environ["WIFI_PORT"])
 
 logging.basicConfig(
     format=(

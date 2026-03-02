@@ -28,15 +28,16 @@ RGB_CAMERA_INDEX = 0
 RGBTOP_CAMERA_INDEX = 2
 SOURCE_RE = "/media/sise/0000-0001/DCIM/Photo"
 SOURCE_RGN = "/media/sise/0000-00011/DCIM/Photo"
-CAM_DEST = "/home/sise/Desktop/pictures"
+CAM_DEST = "/home/sise/Desktop/Fenotipado"
 SEPARATOR = "="
 
 # Variables
-rgb_camera = VideoCapture(RGB_CAMERA_INDEX)
-rgb_cameratop = VideoCapture(RGB_CAMERA_INDEX)
+rgb_camera = VideoCapture(RGB_CAMERA_INDEX, cv2.CAP_V4L2)
+rgb_cameratop = VideoCapture(RGBTOP_CAMERA_INDEX, cv2.CAP_V4L2)
 re_camera = Survey3(RE_CAMERA_PIN, "RE", SOURCE_RE, CAM_DEST)
 rgn_camera = Survey3(RGN_CAMERA_PIN, "RGN", SOURCE_RGN, CAM_DEST)
 process_start = 0
+mount = True
 
 
 # Functions
@@ -54,10 +55,14 @@ def save_rgb_image(prefix: str, frame: MatLike, timestamp: float, step=0):
 
 
 def trigger_picture():
-    print("Triggering...")
+    print("Triggering RE...")
     re_camera.read()
+    print("Triggering RGN...")
     rgn_camera.read()
+    time.sleep(3)
+    print("Triggering RGB...")
     success, frame = rgb_camera.read()
+    print("Triggering RGBT...")
     successtop, frametop = rgb_cameratop.read()
     if success:
         save_rgb_image("RGB", frame, time.time())
@@ -66,14 +71,30 @@ def trigger_picture():
 
 
 def mount_dismount():
-    print("Mount/Dismount")
-    re_camera.toggle_mount()
-    rgn_camera.toggle_mount()
+    global mount
+
+    mount = not mount
+    print("Mounting RE" if mount else "Dismounting RE")
+    re_camera.set_mount(mount)
+    # re_camera.toggle_mount()
+    print("Mounting RGN" if mount else "Dismounting RGN")
+    # rgn_camera.toggle_mount()
+    rgn_camera.set_mount(mount)
+    time.sleep(3)
 
 
 def transfer_images():
-    re_camera.transfer_latest()
-    rgn_camera.transfer_latest()
+    print("Transferring RE")
+    try:
+        re_camera.transfer_latest()
+    except Exception as e:
+        print(f"Error tranferring RE: {e}")
+
+    print("Transferring RGN")
+    try:
+        rgn_camera.transfer_latest()
+    except Exception as e:
+        print(f"Error tranferring RE: {e}")
 
 
 cursor = 0
@@ -128,4 +149,5 @@ if __name__ == "__main__":
     try:
         app.run()
     finally:
-        pass
+        re_camera.set_mount(True)
+        rgn_camera.set_mount(True)

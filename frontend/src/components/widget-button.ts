@@ -25,7 +25,7 @@ class WidgetButton extends GenericWidget {
       const newValue = !value ? 1 : 0;
 
       await fetch(`/api/dashboard/${this.id}?value=${newValue}`, {
-        method: "POST",
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
       });
       button.disabled = false;

@@ -14,7 +14,6 @@
 
 .bulb circle {
   fill: var(--clr);
-  r: var(--r);
+  r: clamp(0%, var(--r), 100%); /*var(--r);*/
   transition: 150ms ease-in-out;
 }
-
