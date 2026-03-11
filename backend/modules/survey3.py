@@ -27,9 +27,9 @@ class Pulse:
 
 
 class Survey3:
-    def __init__(self, pin: digitalio.DigitalInOut, cam_id: str, origin: str, dest: str):
+    def __init__(self, pin: digitalio.DigitalInOut, cam_id: str, base_origin: str, dest: str):
         self.pin = pin
-        self.origin = origin
+        self.base_origin = base_origin
         self.dest = dest
         self.id = cam_id
         self.pin.direction = digitalio.Direction.OUTPUT
@@ -38,7 +38,8 @@ class Survey3:
 
     def set_mount(self, to_mount: bool):
         # When to_mount is True, it ensures the SD becomes not accessible
-        origin_exists = path.isdir(self.origin)
+        origin = self.get_origin()
+        origin_exists = path.isdir(origin) if origin is not None else False
         # Mounted means the origin path should not be accessible
         if to_mount and origin_exists:
             logging.warning("Origin for camera %s accessible. Mounting back.", self.id)
@@ -50,6 +51,14 @@ class Survey3:
             self.toggle_mount()
             return True
         return False
+
+    def get_origin(self):
+        drives = listdir(self.base_origin)
+        for drive in drives:
+            drive_path = path.join(self.base_origin, drive)
+            if path.isfile(path.join(drive_path, f"{self.id}.txt")):
+                return path.join(drive_path, "DCIM", "Photo")
+        return None
 
     def pulse(self, pulse: float):
         self.pin.value = True
@@ -72,19 +81,20 @@ class Survey3:
         time.sleep(1)
 
     def transfer_latest(self):
-        if not path.exists(self.origin):
-            logging.error("The directory %s does not exist.", self.origin)
+        origin = self.get_origin()
+        if not path.exists(origin):
+            logging.error("The directory %s does not exist.", origin)
             return False
 
         latest = None
-        for file in listdir(self.origin):
-            name = path.join(self.origin, file)
+        for file in listdir(origin):
+            name = path.join(origin, file)
             if not path.isfile(name):
                 continue
             if latest is None or path.getctime(name) > path.getctime(latest):
                 latest = name
         if latest is None:
-            logging.error("No files found in %s.", self.origin)
+            logging.error("No files found in %s.", origin)
             return False
 
         safe_copy(
@@ -97,30 +107,32 @@ class Survey3:
         if timestamp == 0:
             timestamp = time.time()
 
-        if not path.exists(self.origin):
-            logging.error("The directory %s does not exist.", self.origin)
+        origin = self.get_origin()
+
+        if not path.exists(origin):
+            logging.error("The directory %s does not exist.", origin)
             return False
 
         files = [
             f
-            for f in listdir(self.origin)
+            for f in listdir(origin)
             if f.lower().endswith((".jpg", ".jpeg", ".png"))
         ]
         files = sorted(
-            files, key=lambda x: path.getctime(path.join(self.origin, x)), reverse=True
+            files, key=lambda x: path.getctime(path.join(origin, x)), reverse=True
         )
 
-        if len(files) < n:
-            logging.error(
-                "Not enough files found in %s. Expected %d, found %d",
-                self.origin,
-                n,
-                len(files),
-            )
-            return False
+        # if len(files) < n:
+        #     logging.error(
+        #         "Not enough files found in %s. Expected %d, found %d",
+        #         origin,
+        #         n,
+        #         len(files),
+        #     )
+        #     return False
 
         for i, file in enumerate(files[:n]):
-            src = path.join(self.origin, file)
+            src = path.join(origin, file)
             dst = path.join(
                 get_session_dirpath(self.dest, session),
                 generate_photo_name(self.id, timestamp, i),
@@ -132,12 +144,13 @@ class Survey3:
         return True
 
     def clear_sd(self):
-        if not path.exists(self.origin):
-            logging.error("The directory %s does not exist.", self.origin)
+        origin = self.get_origin()
+        if not path.exists(origin):
+            logging.error("The directory %s does not exist.", origin)
             return False
 
-        for file in listdir(self.origin):
-            name = path.join(self.origin, file)
+        for file in listdir(origin):
+            name = path.join(origin, file)
             if not path.isfile(name):
                 continue
 

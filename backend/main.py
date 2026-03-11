@@ -49,6 +49,7 @@ for pin in [START_BTN, STOP_BTN, DIR_SWITCH]:
 CAM_RGB_INDEX = 2
 CAM_RGBT_INDEX = 0
 CONNECTION_URL = f"http://127.0.0.1:{config.WIFI_PORT}/active"
+CAM_SRC = "/media/sise"
 CAM_SRC_RGN = "/media/sise/0000-00011/DCIM/Photo"
 CAM_SRC_RE = "/media/sise/0000-0001/DCIM/Photo"
 CAM_DEST = config.CAM_DEST
@@ -57,7 +58,7 @@ DXL_BAUDRATE = 1_000_000
 DXL_ID = 1
 DXL_SPEED = 50
 MOTOR_STEPS = lambda: int(data.get(data.PHOTO_AMOUNT) or 11)
-MOTOR_STEP_TIME = lambda: 6 / max(MOTOR_STEPS() - 1, 1) + 0.5
+MOTOR_STEP_TIME = lambda: 13 / max(MOTOR_STEPS() - 1, 1) + 0.5
 MOTOR_RESET_TIME = lambda: (MOTOR_STEPS() * MOTOR_STEP_TIME())
 ANGLES = lambda: [round(i * (300 / (MOTOR_STEPS() - 1))) for i in range(MOTOR_STEPS())]
 SENSOR_READ_TIME = 0.5
@@ -106,8 +107,8 @@ except ValueError:
 stop_event = threading.Event()
 side_cam = CameraThread("RGB", CAM_RGB_INDEX, stop_event, 800, 600)
 top_cam = CameraThread("RGBT", CAM_RGBT_INDEX, stop_event, 848, 480)
-re_camera = Survey3(RE_CAMERA, "RE", CAM_SRC_RE, CAM_DEST)
-rgn_camera = Survey3(RGN_CAMERA, "RGN", CAM_SRC_RGN, CAM_DEST)
+re_camera = Survey3(RE_CAMERA, "RE", CAM_SRC, CAM_DEST)
+rgn_camera = Survey3(RGN_CAMERA, "RGN", CAM_SRC, CAM_DEST)
 
 app = api.create(__name__)
 
@@ -341,13 +342,20 @@ def main():
         rgn_was_mounted = rgn_camera.set_mount(False)
         if re_was_mounted or rgn_was_mounted:
             time.sleep(2)
-        time.sleep(60)
+        re_was_mounted = re_camera.set_mount(False)
+        rgn_was_mounted = rgn_camera.set_mount(False)
+        if re_was_mounted or rgn_was_mounted:
+            time.sleep(2)
 
         re_camera.transfer_n(states.get(states.ANGLE), states.get(states.SESSION), times["process_start"])
         rgn_camera.transfer_n(states.get(states.ANGLE), states.get(states.SESSION), times["process_start"])
         re_camera.clear_sd()
         rgn_camera.clear_sd()
 
+        re_was_dismounted = re_camera.set_mount(True)
+        rgn_was_dismounted = rgn_camera.set_mount(True)
+        if re_was_dismounted or rgn_was_dismounted:
+            time.sleep(2)
         re_was_dismounted = re_camera.set_mount(True)
         rgn_was_dismounted = rgn_camera.set_mount(True)
 

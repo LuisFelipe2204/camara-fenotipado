@@ -39,6 +39,9 @@ class CameraThread(threading.Thread):
         self.height = height
 
         self.capture = cv2.VideoCapture(device_index)  # pylint: disable=no-member
+        if not self.capture.isOpened():
+            self.capture = cv2.VideoCapture(device_index + 1)  # pylint: disable=no-member
+
         self.capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
         self.capture.set(
             cv2.CAP_PROP_FRAME_WIDTH, self.width  # pylint: disable=no-member

@@ -26,6 +26,7 @@ RGN_CAMERA_PIN.direction = digitalio.Direction.OUTPUT
 # Constants
 RGB_CAMERA_INDEX = 0
 RGBTOP_CAMERA_INDEX = 2
+SOURCE = "/media/sise"
 SOURCE_RE = "/media/sise/0000-0001/DCIM/Photo"
 SOURCE_RGN = "/media/sise/0000-00011/DCIM/Photo"
 CAM_DEST = "/home/sise/Desktop/Fenotipado"
@@ -34,8 +35,8 @@ SEPARATOR = "="
 # Variables
 rgb_camera = VideoCapture(RGB_CAMERA_INDEX, cv2.CAP_V4L2)
 rgb_cameratop = VideoCapture(RGBTOP_CAMERA_INDEX, cv2.CAP_V4L2)
-re_camera = Survey3(RE_CAMERA_PIN, "RE", SOURCE_RE, CAM_DEST)
-rgn_camera = Survey3(RGN_CAMERA_PIN, "RGN", SOURCE_RGN, CAM_DEST)
+re_camera = Survey3(RE_CAMERA_PIN, "RE", SOURCE, CAM_DEST)
+rgn_camera = Survey3(RGN_CAMERA_PIN, "RGN", SOURCE, CAM_DEST)
 process_start = 0
 mount = True
 

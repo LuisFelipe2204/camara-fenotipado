@@ -52,12 +52,37 @@ class Result {
 }
 
 let transferring = false;
+
 const results = {
   side: new Result("rgb"),
   top: new Result("rgbt"),
   rgn: new Result("rgn"),
   re: new Result("re"),
 };
+
+function preloadIndex(index: number) {
+  Object.values(results).forEach((result) => {
+    const item = result.images[index];
+    if (!item?.image) return;
+
+    const img = new Image();
+    img.src = item.image;
+  });
+}
+
+function updateDisplayAndPreload() {
+  currentPages.textContent = String(Result.index + 1);
+
+  Object.values(results).forEach((result) => result.display());
+
+  // Preload current
+  preloadIndex(Result.index);
+
+  if (Result.max > 1) {
+    preloadIndex((Result.index + 1) % Result.max);
+    preloadIndex((Result.index - 1 + Result.max) % Result.max);
+  }
+}
 
 document.addEventListener("runningFinished", async () => {
   Object.values(results).forEach((result) => result.reset());
@@ -69,8 +94,12 @@ document.addEventListener("runningFinished", async () => {
   loader.style.display = "flex";
 
   const data: Data | null = await poll("/api/photos");
+
   try {
-    if (!data) return dispatchToast("Failed to fetch images.");
+    if (!data) {
+      dispatchToast("Failed to fetch images.");
+      return;
+    }
   } finally {
     transferring = false;
     content.style.display = "grid";
@@ -81,34 +110,40 @@ document.addEventListener("runningFinished", async () => {
   results.side.images = data.photos.RGB.map(Result.mapResults);
   results.rgn.images = data.photos.RGN.map(Result.mapResults);
   results.re.images = data.photos.RE.map(Result.mapResults);
-  Result.index = 0;
-  Result.max = Math.max(...Object.values(results).map((result) => result.images.length));
 
-  currentPages.textContent = String(Result.index + 1);
+  Result.index = 0;
+  Result.max = Math.max(
+    ...Object.values(results).map((result) => result.images.length)
+  );
+
   totalPages.textContent = String(Result.max);
 
-  Object.values(results).forEach((result) => result.display());
+  updateDisplayAndPreload();
 });
 
 resultPopup.addEventListener("click", (ev) => {
   const content = resultPopup.querySelector(".popup-content") as HTMLDivElement;
-  if (!resultPopup.classList.contains("hidden") && !content.contains(ev.target as any)) {
+
+  if (
+    !resultPopup.classList.contains("hidden") &&
+    !content.contains(ev.target as any)
+  ) {
     if (transferring) {
       dispatchToast("Wait for image transfer to finish before closing");
       return;
     }
+
     resultPopup.classList.toggle("hidden", true);
   }
 });
 
 nextPage.addEventListener("click", () => {
   Result.index = (Result.index + 1) % (Result.max || 1);
-  currentPages.textContent = String(Result.index + 1);
-  Object.values(results).forEach((result) => result.display());
-})
+  updateDisplayAndPreload();
+});
 
 prevPage.addEventListener("click", () => {
-  Result.index = (Result.index - 1) % (Result.max || 1);
-  currentPages.textContent = String(Result.index + 1);
-  Object.values(results).forEach((result) => result.display());
-})
+  Result.index =
+    (Result.index - 1 + (Result.max || 1)) % (Result.max || 1);
+  updateDisplayAndPreload();
+});
