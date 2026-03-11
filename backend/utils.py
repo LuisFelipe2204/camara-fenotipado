@@ -108,7 +108,7 @@ def get_session_dirpath(base: str, session: int) -> str:
     return dirpath
 
 
-def zip_dir(dirpath: str) -> bytes:
+def zip_dir(dirpath: str) -> BytesIO:
     mem = BytesIO()
 
     with zipfile.ZipFile(mem, mode="w", compression=zipfile.ZIP_DEFLATED) as zip:
@@ -119,7 +119,7 @@ def zip_dir(dirpath: str) -> bytes:
                 zip.write(filepath, relative)
 
     mem.seek(0)
-    return mem.getvalue()
+    return mem
 
 
 def safe_copy(src: str, dest: str, chunk: int = 64 * 1024) -> bool:

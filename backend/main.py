@@ -20,6 +20,7 @@ from luma.oled.device import sh1106
 from PIL import Image, ImageDraw, ImageFont
 import api
 from data import data, states, photos_taken
+from concurrent.futures import ThreadPoolExecutor
 
 import utils
 from modules.ax12 import Ax12
@@ -295,23 +296,10 @@ def main():
 
             logging.info("Taking RE and RGN pictures...")
             toggle_lights(False, True, False)
-            # Mount back the SDs if any was dismounted
-            re_was_dismounted = re_camera.set_mount(True)
-            rgn_was_dismounted = rgn_camera.set_mount(True)
-            if re_was_dismounted or rgn_was_dismounted:
-                # If either was dismounted wait for it to mount
-                time.sleep(2)
-            # Read both cameras at the same time and wait for them to take the photo
-            re_camera.read()
-            rgn_camera.read()
-            time.sleep(2)
-            # If reading the camera dismounted the SD instead, try again
-            re_was_dismounted = re_camera.set_mount(True)
-            rgn_was_dismounted = rgn_camera.set_mount(True)
-            if re_was_dismounted or rgn_was_dismounted:
-                time.sleep(2)
-                re_camera.read() if re_was_dismounted else None
-                rgn_camera.read() if rgn_was_dismounted else None
+            # Attempt to read each camera 5 times max
+            with ThreadPoolExecutor(max_workers=2) as ex:
+                ex.submit(re_camera.attempt_read, 5)
+                ex.submit(rgn_camera.attempt_read, 5)
             # Add to the photos counter
             photos_taken.add(photos_taken.IR, 1)
             photos_taken.add(photos_taken.UV, 1)
@@ -334,30 +322,18 @@ def main():
     ):
         logging.info("Transferring %d images.", states.get(states.ANGLE))
 
-        re_was_mounted = re_camera.set_mount(False)
-        rgn_was_mounted = rgn_camera.set_mount(False)
-        if re_was_mounted or rgn_was_mounted:
-            time.sleep(2)
-        re_was_mounted = re_camera.set_mount(False)
-        rgn_was_mounted = rgn_camera.set_mount(False)
-        if re_was_mounted or rgn_was_mounted:
-            time.sleep(2)
-        re_was_mounted = re_camera.set_mount(False)
-        rgn_was_mounted = rgn_camera.set_mount(False)
-        if re_was_mounted or rgn_was_mounted:
-            time.sleep(2)
+        with ThreadPoolExecutor(max_workers=2) as ex:
+            ex.submit(re_camera.attempt_set_mount, False, 5)
+            ex.submit(rgn_camera.attempt_set_mount, False, 5)
 
         re_camera.transfer_n(states.get(states.ANGLE), states.get(states.SESSION), times["process_start"])
         rgn_camera.transfer_n(states.get(states.ANGLE), states.get(states.SESSION), times["process_start"])
         re_camera.clear_sd()
         rgn_camera.clear_sd()
 
-        re_was_dismounted = re_camera.set_mount(True)
-        rgn_was_dismounted = rgn_camera.set_mount(True)
-        if re_was_dismounted or rgn_was_dismounted:
-            time.sleep(2)
-        re_was_dismounted = re_camera.set_mount(True)
-        rgn_was_dismounted = rgn_camera.set_mount(True)
+        with ThreadPoolExecutor(max_workers=2) as ex:
+            ex.submit(re_camera.attempt_set_mount, True, 5)
+            ex.submit(rgn_camera.attempt_set_mount, True, 5)
 
         update_progress(states.get(states.ANGLE), 4, True)
         states.set(states.ANGLE, 0)

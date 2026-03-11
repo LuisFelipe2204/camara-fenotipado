@@ -3,7 +3,7 @@ import logging
 import os
 import shutil
 
-from flask import Flask, Response, jsonify, request, stream_with_context
+from flask import Flask, Response, jsonify, request, stream_with_context, send_file
 
 import config
 import utils
@@ -113,12 +113,13 @@ def create(name: str) -> Flask:
 
     @app.route("/session")
     def get_session():
-        """Zip all of the CAM_DEST directory and return it"""
         zipped = utils.zip_dir(config.CAM_DEST)
-        return Response(
+        print(zipped)
+        return send_file(
             zipped,
             mimetype="application/zip",
-            headers={"Content-Disposition": f"attachment; filename=all_sessions.zip"},
+            as_attachment=True,
+            download_name="all_sessions.zip",
         )
 
     @app.route("/session", methods=["DELETE"])

@@ -57,9 +57,9 @@ def save_rgb_image(prefix: str, frame: MatLike, timestamp: float, step=0):
 
 def trigger_picture():
     print("Triggering RE...")
-    re_camera.read()
+    re_camera.attempt_read(5)
     print("Triggering RGN...")
-    rgn_camera.read()
+    rgn_camera.attempt_read(5)
     time.sleep(3)
     print("Triggering RGB...")
     success, frame = rgb_camera.read()
@@ -76,12 +76,12 @@ def mount_dismount():
 
     mount = not mount
     print("Mounting RE" if mount else "Dismounting RE")
-    re_camera.set_mount(mount)
+    re_camera.attempt_set_mount(mount, 5)
     time.sleep(1)
     # re_camera.toggle_mount()
     print("Mounting RGN" if mount else "Dismounting RGN")
-    # rgn_camera.toggle_mount()
-    rgn_camera.set_mount(mount)
+    rgn_camera.toggle_mount()
+    # rgn_camera.attempt_set_mount(mount, 5)
     time.sleep(3)
 
 

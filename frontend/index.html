@@ -120,14 +120,14 @@
             <span class="widget-title">Cámara Lateral</span>
             <live-camera id="live-rgb" src="/api/video/0" />
           </div>
-          <div class="widget">
+          <!-- <div class="widget">
             <span class="widget-title">Temperatura</span>
             <widget-thermo id="temp" max="50" color="#D6821A" suffix="°C" />
           </div>
           <div class="widget">
             <span class="widget-title">Humedad</span>
             <widget-gauge id="hum" suffix="%" color="#0491BF" />
-          </div>
+          </div> -->
           <div class="widget">
             <span class="widget-title">Luz Blanca</span>
             <widget-bulb id="white_lux" max="1000" color="#6A9491" suffix="lux" />
@@ -153,7 +153,8 @@
             <widget-picker id="photo_amount" color="#000" />
           </div>
           <div class="widget">
-            <widget-button id="running" on="Encendido" off="Apagado" />
+            <span class="widget-title">Encendido / Apagado</span>
+            <widget-button id="running" on="▶" off="⏹" />
           </div>
           <div class="widget">
             <div id="credits">
@@ -161,6 +162,8 @@
                 <p>Luis Felipe Arciniegas Espitia</p>
                 <p>Nicolás José Sánchez Mendoza</p>
                 <p>Samuel Giraldo Cortés</p>
+                <p>Nicolás Castro Restrepo</p>
+                <p>David Velásquez Rendón</p>
                 <p>Centro de Laboratorios</p>
               </div>
               <div class="logo">

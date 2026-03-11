@@ -10,7 +10,7 @@ main {
 .widget:has(#live-rgbt),
 .widget:has(#live-rgb) {
   grid-column: span 5;
-  grid-row: span 7;
+  grid-row: span 8;
 }
 
 .widget:has(#temp),
@@ -27,24 +27,24 @@ main {
 }
 
 .widget:has(#angle) {
-  grid-column: span 2;
+  grid-column: span 3;
   grid-row: span 3;
 }
 .widget:has(#progress) {
-  grid-column: span 4;
+  grid-column: span 3;
   grid-row: span 3;
 }
 
 .widget:has(#photo_amount) {
-  grid-column: span 2;
+  grid-column: span 3;
   grid-row: span 3;
 }
 .widget:has(#running) {
-  grid-column: span 2;
+  grid-column: span 3;
   grid-row: span 3;
 }
 
 .widget:has(#credits) {
-  grid-column: span 6;
+  grid-column: span 10;
   grid-row: span 2;
 }

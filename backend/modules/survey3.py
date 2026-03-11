@@ -53,11 +53,23 @@ class Survey3:
         return False
 
     def get_origin(self):
-        drives = listdir(self.base_origin)
+        try:
+            drives = listdir(self.base_origin)
+        except Exception:
+            return None
+
         for drive in drives:
             drive_path = path.join(self.base_origin, drive)
-            if path.isfile(path.join(drive_path, f"{self.id}.txt")):
-                return path.join(drive_path, "DCIM", "Photo")
+            if not path.isdir(drive_path):
+                continue
+
+            marker = path.join(drive_path, f"{self.id}.txt")
+            if not path.isfile(marker):
+                continue
+
+            photo_path = path.join(drive_path, "DCIM", "Photo")
+            if path.isdir(photo_path):
+                return photo_path
         return None
 
     def pulse(self, pulse: float):
@@ -80,10 +92,35 @@ class Survey3:
         self.pulse(Pulse.DO_NOTHING)
         time.sleep(1)
 
+    def attempt_read(self, attempts: int = 1):
+        if attempts <= 0:
+            return
+
+        for _ in range(attempts):
+            if self.set_mount(True): 
+                time.sleep(2) # If the SD was actually dismounted, wait 2 extra seconds for it to mount
+            if self.set_mount(True): 
+                time.sleep(2)
+                continue # If the SD was actually dismounted again, restart the loop without trying to read yet, if this time it was mounted proceed to reading
+
+            self.read()
+            time.sleep(2)
+            if not self.set_mount(True): 
+                return # If after reading the SD is still mounted it assumes it read correctly the image
+
+    def attempt_set_mount(self, mount: bool, attempts: int = 1):
+        if attempts <= 0:
+            return
+
+        for _ in range(attempts):
+            changed = self.set_mount(mount) # If the SD is in the opposite state, order it to change
+            if changed: time.sleep(2) # If the SD was actually in the opposite state, wait 2 extra seconds for it to change
+            if not self.set_mount(mount): break # If after receiving the change order its in the correct state it assumes it toggled correctly
+
     def transfer_latest(self):
         origin = self.get_origin()
-        if not path.exists(origin):
-            logging.error("The directory %s does not exist.", origin)
+        if origin is None or not path.exists(origin):
+            logging.error("Origin not available for camera %s", self.id)
             return False
 
         latest = None
@@ -108,9 +145,8 @@ class Survey3:
             timestamp = time.time()
 
         origin = self.get_origin()
-
-        if not path.exists(origin):
-            logging.error("The directory %s does not exist.", origin)
+        if origin is None or not path.exists(origin):
+            logging.error("Origin not available for camera %s", self.id)
             return False
 
         files = [
@@ -122,14 +158,14 @@ class Survey3:
             files, key=lambda x: path.getctime(path.join(origin, x)), reverse=True
         )
 
-        # if len(files) < n:
-        #     logging.error(
-        #         "Not enough files found in %s. Expected %d, found %d",
-        #         origin,
-        #         n,
-        #         len(files),
-        #     )
-        #     return False
+        if len(files) < n:
+            logging.error(
+                "Not enough files found in %s. Expected %d, found %d",
+                origin,
+                n,
+                len(files),
+            )
+            return False
 
         for i, file in enumerate(files[:n]):
             src = path.join(origin, file)
@@ -145,8 +181,8 @@ class Survey3:
 
     def clear_sd(self):
         origin = self.get_origin()
-        if not path.exists(origin):
-            logging.error("The directory %s does not exist.", origin)
+        if origin is None or not path.exists(origin):
+            logging.error("Origin not available for camera %s", self.id)
             return False
 
         for file in listdir(origin):

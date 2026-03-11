@@ -30,18 +30,20 @@ buttons.download.addEventListener("click", async () => {
 
   try {
     dispatchToast("Preparing files for download...");
-    const res = await fetch("/api/session");
-    if (!res.ok) return dispatchToast("Error while downloading.");
+    window.location.assign("/api/session")
 
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
+    // const res = await fetch("/api/session");
+    // if (!res.ok) return dispatchToast("Error while downloading.");
 
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    // const blob = await res.blob();
+    // const url = URL.createObjectURL(blob);
+    // const a = document.createElement("a");
+    // a.href = url;
+
+    // document.body.appendChild(a);
+    // a.click();
+    // a.remove();
+    // URL.revokeObjectURL(url);
   } finally {
     toggleDisabled(buttons.download, false);
   }
