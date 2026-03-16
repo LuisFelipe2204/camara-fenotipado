@@ -43,10 +43,10 @@ class WidgetButton extends GenericWidget {
 
     if (value === 1) {
       this.value.textContent = this.stateOn;
-      this.style.setProperty("--clr", "hsl(120, 70%, 60%)");
+      this.style.setProperty("--clr", "hsl(0, 70%, 60%)");
     } else {
       this.value.textContent = this.stateOff;
-      this.style.setProperty("--clr", "hsl(0, 70%, 60%)");
+      this.style.setProperty("--clr", "hsl(120, 70%, 60%)");
     }
     this.previousState = value;
   }

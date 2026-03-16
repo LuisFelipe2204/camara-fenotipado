@@ -127,8 +127,17 @@ def wifi_cred():
     if not ssid or not password:
         return jsonify({"msg": "Missing SSID or password"}), 400
 
-    result = run(["nmcli", "dev", "wifi", "connect", ssid, "password", password])
-
+    result = run([
+        "nmcli",
+        "dev",
+        "wifi",
+        "connect",
+        ssid,
+        "password",
+        password,
+        "wifi-sec.key-mgmt",
+        "wpa-psk"
+    ])
     if result.returncode != 0:
         return jsonify({"msg": result.stderr.strip()}), 500
 

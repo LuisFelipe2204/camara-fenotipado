@@ -1,14 +1,18 @@
 .widget:has(widget-button) {
   justify-content: center;
+  color: white;
+  --fg-3: #c0c0c0;
 }
 
 widget-button {
   cursor: pointer;
   display: flex;
   aspect-ratio: 1;
-  border: 2px solid black;
+  border: 2px solid white;
   border-radius: 100%;
-  max-height: 100%;
+  max-height: calc(100% - 4px - 2.25rem);
+  align-self: center;
+  margin-top: 1rem;
 }
 
 widget-button button {
@@ -21,4 +25,8 @@ widget-button button {
 
 widget-button:hover button {
   filter: brightness(0.8);
+}
+
+widget-button .value {
+  font-size: 3rem;
 }

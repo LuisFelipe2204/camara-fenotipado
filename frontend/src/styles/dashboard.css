@@ -38,10 +38,14 @@ main {
 .widget:has(#photo_amount) {
   grid-column: span 3;
   grid-row: span 3;
+  --bg-alpha: #000000a0;
+  --border-alpha: #000000;
 }
 .widget:has(#running) {
   grid-column: span 3;
   grid-row: span 3;
+  --bg-alpha: #000000a0;
+  --border-alpha: #000000;
 }
 
 .widget:has(#credits) {

@@ -299,7 +299,7 @@ def main():
             # Attempt to read each camera 5 times max
             with ThreadPoolExecutor(max_workers=2) as ex:
                 ex.submit(re_camera.attempt_read, 5)
-                ex.submit(rgn_camera.attempt_read, 5)
+                #ex.submit(rgn_camera.attempt_read, 5)
             # Add to the photos counter
             photos_taken.add(photos_taken.IR, 1)
             photos_taken.add(photos_taken.UV, 1)
@@ -324,7 +324,7 @@ def main():
 
         with ThreadPoolExecutor(max_workers=2) as ex:
             ex.submit(re_camera.attempt_set_mount, False, 5)
-            ex.submit(rgn_camera.attempt_set_mount, False, 5)
+            #ex.submit(rgn_camera.attempt_set_mount, False, 5)
 
         re_camera.transfer_n(states.get(states.ANGLE), states.get(states.SESSION), times["process_start"])
         rgn_camera.transfer_n(states.get(states.ANGLE), states.get(states.SESSION), times["process_start"])

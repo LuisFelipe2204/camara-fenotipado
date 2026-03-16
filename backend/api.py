@@ -124,13 +124,14 @@ def create(name: str) -> Flask:
 
     @app.route("/session", methods=["DELETE"])
     def delete_session():
-        """Deletes all of the session directories"""
         try:
-            shutil.rmtree(config.CAM_DEST)
-            os.mkdir(config.CAM_DEST)
+            for name in os.listdir(config.CAM_DEST):
+                path = os.path.join(config.CAM_DEST, name)
+                if os.path.isdir(path): shutil.rmtree(path)
+                else: os.remove(path)
+            return jsonify({"ok": True, "reason": ""})
         except Exception as e:
             return jsonify({"ok": False, "reason": str(e)})
-        return jsonify({"ok": True, "reason": ""})
 
     return app
 
